@@ -6,8 +6,6 @@
     <title>Twitch Word Ban Overlay</title>
     <!-- Tailwind CSS for rapid styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- tmi.js for Twitch Chat Integration -->
-    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
     
     <style>
         /* Import a monospace font for the timer and a bold font for the word */
@@ -433,56 +431,116 @@
             simulateBan(simulatedWordParam);
         }
 
-        // --- Twitch Connection & Chat Handling ---
+        // --- Twitch Connection & Chat Handling (Native IRC WebSocket) ---
 
-        window.addEventListener('load', () => {
-            if (typeof tmi === 'undefined') {
-                console.error("tmi.js is not defined. The Twitch Chat library failed to load.");
-                document.getElementById('current-channel-display').textContent = "Failed to load tmi.js";
-                return;
+        function handleChatMessage(tags, message) {
+            // Permissions Check:
+            // Check if user is Broadcaster or Mod (bypassed if listening to default 'twitch' channel)
+            const isBroadcaster = tags.badges?.broadcaster === '1';
+            const isMod = tags.mod || tags.badges?.moderator === '1';
+            const isTestMode = (channelName.toLowerCase() === 'twitch');
+            const hasPermission = isBroadcaster || isMod || isTestMode;
+
+            if (!hasPermission) return;
+
+            const args = message.trim().split(/\s+/);
+            const command = args[0].toLowerCase();
+
+            if (command === '!wordban' && args.length > 1) {
+                // Combine remaining arguments into the banned word (allows phrases)
+                const word = args.slice(1).join(' ');
+                showOverlay(word);
+                startTimer(DEFAULT_TIME);
             }
+            else if (command === '!penalty') {
+                if (isActive && remainingSeconds > 0) {
+                    remainingSeconds += PENALTY_TIME;
+                    updateTimerDisplay();
+                    triggerPenaltyFlash();
+                }
+            }
+            else if (command === '!clearban') {
+                hideOverlay();
+            }
+        }
 
-            const client = new tmi.Client({
-                channels: [channelName]
+        function parseIrcTags(rawTags) {
+            const tags = { badges: {}, mod: false };
+            if (!rawTags) return tags;
+
+            for (const part of rawTags.split(';')) {
+                const eqIdx = part.indexOf('=');
+                if (eqIdx === -1) continue;
+                const key = part.slice(0, eqIdx);
+                const val = part.slice(eqIdx + 1);
+
+                if (key === 'badges' && val) {
+                    for (const badge of val.split(',')) {
+                        const [bName, bVer] = badge.split('/');
+                        if (bName) tags.badges[bName] = bVer || '1';
+                    }
+                } else if (key === 'mod') {
+                    tags.mod = (val === '1');
+                } else {
+                    tags[key] = val;
+                }
+            }
+            return tags;
+        }
+
+        function connectTwitchChat() {
+            const targetChannel = channelName.toLowerCase().replace(/^#/, '');
+            const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+
+            ws.addEventListener('open', () => {
+                ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+                ws.send('PASS SCHMOOPIIE');
+                ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 90000));
+                ws.send('JOIN #' + targetChannel);
+                document.getElementById('current-channel-display').textContent = `${channelName} (connected)`;
             });
-            
-            client.connect().catch(console.error);
 
-            client.on('message', (channel, tags, message, self) => {
-                if (self) return; // Ignore own messages from the bot (if applicable)
+            ws.addEventListener('message', (event) => {
+                const lines = event.data.split('\r\n');
+                for (const line of lines) {
+                    if (!line) continue;
 
-                // Permissions Check:
-                // Check if user is Broadcaster, Mod.
-                // (For the sake of testing if you haven't given yourself mod in the preview yet, 
-                // we bypass this if listening to the default 'twitch' channel)
-                const isBroadcaster = tags.badges?.broadcaster === '1';
-                const isMod = tags.mod;
-                const isTestMode = (channelName.toLowerCase() === 'twitch'); 
-                const hasPermission = isBroadcaster || isMod || isTestMode;
+                    if (line.startsWith('PING')) {
+                        ws.send(line.replace('PING', 'PONG'));
+                        continue;
+                    }
 
-                if (!hasPermission) return;
+                    let rawTags = '';
+                    let rest = line;
+                    if (rest.startsWith('@')) {
+                        const spaceIdx = rest.indexOf(' ');
+                        if (spaceIdx !== -1) {
+                            rawTags = rest.slice(1, spaceIdx);
+                            rest = rest.slice(spaceIdx + 1).trimStart();
+                        }
+                    }
 
-                const args = message.trim().split(' ');
-                const command = args[0].toLowerCase();
-
-                if (command === '!wordban' && args.length > 1) {
-                    // Combine remaining arguments into the banned word (allows phrases)
-                    const word = args.slice(1).join(' ');
-                    showOverlay(word);
-                    startTimer(DEFAULT_TIME); 
-                } 
-                else if (command === '!penalty') {
-                    if (isActive && remainingSeconds > 0) {
-                        remainingSeconds += PENALTY_TIME;
-                        updateTimerDisplay();
-                        triggerPenaltyFlash();
+                    const privmsgMatch = rest.match(/^:([^!]+)!.*?\s+PRIVMSG\s+#\S+\s+:(.*)$/);
+                    if (privmsgMatch) {
+                        const message = privmsgMatch[2];
+                        const tags = parseIrcTags(rawTags);
+                        handleChatMessage(tags, message);
                     }
                 }
-                else if (command === '!clearban') {
-                    hideOverlay();
-                }
             });
-        });
+
+            ws.addEventListener('close', () => {
+                // Reconnect automatically after 3 seconds if connection drops
+                setTimeout(connectTwitchChat, 3000);
+            });
+
+            ws.addEventListener('error', (err) => {
+                console.error('Twitch IRC WebSocket error:', err);
+                ws.close();
+            });
+        }
+
+        window.addEventListener('load', connectTwitchChat);
     </script>
 </body>
 </html>
