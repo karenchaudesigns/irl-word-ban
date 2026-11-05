@@ -93,9 +93,19 @@
 </head>
 <body class="w-screen h-screen flex justify-center pt-10">
 
-    <!-- Helper Guide (Fades away so it won't show on stream for long) -->
-    <div id="guide-panel" class="fixed top-4 left-4 bg-gray-900/90 text-white text-sm p-4 rounded-xl shadow-2xl border border-gray-700 max-w-sm z-50">
-        <h2 class="font-bold text-lg text-blue-400 mb-2">Overlay Configured!</h2>
+    <!-- Toggle button to bring back guide/simulator panel (invisible on OBS stream, appears on hover in top-left) -->
+    <button id="show-guide-btn" onclick="showGuidePanel()" title="Open Simulator & Guide (or press H)" class="fixed top-4 left-4 bg-gray-900/90 hover:bg-gray-800 text-gray-200 hover:text-white text-xs font-semibold px-3 py-2 rounded-lg border border-gray-700 shadow-lg z-40 opacity-0 hover:opacity-100 pointer-events-none transition-opacity duration-200">
+        ⚙️ Simulator / Guide (H)
+    </button>
+
+    <!-- Helper Guide & Simulator (Fades away if untouched so it won't show on stream for long) -->
+    <div id="guide-panel" class="fixed top-4 left-4 bg-gray-900/95 text-white text-sm p-4 rounded-xl shadow-2xl border border-gray-700 max-w-sm z-50">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="font-bold text-lg text-blue-400">Overlay Configured!</h2>
+            <button onclick="hideGuidePanel()" title="Hide panel (H)" class="text-gray-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800 transition-colors">
+                ✕ Hide
+            </button>
+        </div>
         <p class="mb-2 text-gray-300">Currently listening to channel: <span id="current-channel-display" class="font-mono text-green-400 font-bold">...</span></p>
         <p class="mb-2 text-xs text-gray-400">To change channel, use <br><code class="bg-black p-1 rounded">?channel=your_username</code> in the URL.</p>
         <div class="mt-3">
@@ -106,7 +116,52 @@
                 <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
             </ul>
         </div>
-        <p class="mt-4 text-xs text-gray-500 italic">This setup guide will auto-hide in 10 seconds...</p>
+
+        <!-- Simulate Word Ban Controls -->
+        <div class="mt-4 pt-3 border-t border-gray-700">
+            <strong class="text-gray-200 block mb-2">Simulate Word Ban:</strong>
+            <form id="simulate-form" class="flex gap-2 mb-2" onsubmit="handleSimulateSubmit(event)">
+                <input
+                    id="simulate-word-input"
+                    type="text"
+                    placeholder="Enter banned word..."
+                    value="CRINGE"
+                    class="flex-1 bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
+                />
+                <button
+                    type="submit"
+                    class="bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                >
+                    Ban Word
+                </button>
+            </form>
+            <div class="grid grid-cols-3 gap-1.5">
+                <button
+                    type="button"
+                    onclick="simulatePenalty()"
+                    class="bg-amber-600/90 hover:bg-amber-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
+                >
+                    +3m Penalty
+                </button>
+                <button
+                    type="button"
+                    onclick="simulateEndingSoon()"
+                    class="bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
+                    title="Jump timer to 3 seconds left to preview Ban Over"
+                >
+                    Test End (3s)
+                </button>
+                <button
+                    type="button"
+                    onclick="hideOverlay()"
+                    class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
+                >
+                    Clear Ban
+                </button>
+            </div>
+        </div>
+
+        <p id="guide-autohide-msg" class="mt-3 text-xs text-gray-500 italic">Auto-hides in 10s if untouched (press <kbd class="bg-gray-800 px-1 rounded text-gray-300">H</kbd> to toggle).</p>
     </div>
 
     <!-- Full screen red flash for penalty -->
@@ -156,14 +211,59 @@
         // Get channel from URL parameters, defaulting to 'twitch'
         const urlParams = new URLSearchParams(window.location.search);
         const channelName = urlParams.get('channel') || 'twitch';
-        
-        // Hide the instruction guide after 10 seconds
+        const guidePanel = document.getElementById('guide-panel');
+        const showGuideBtn = document.getElementById('show-guide-btn');
+        const guideAutohideMsg = document.getElementById('guide-autohide-msg');
+        let guideTimeout = null;
+        let guideInteracted = false;
+
         document.getElementById('current-channel-display').textContent = channelName;
-        setTimeout(() => {
-            const guide = document.getElementById('guide-panel');
-            guide.style.opacity = '0';
-            setTimeout(() => guide.remove(), 1000);
+
+        function hideGuidePanel() {
+            if (guideTimeout) clearTimeout(guideTimeout);
+            guidePanel.style.opacity = '0';
+            guidePanel.style.pointerEvents = 'none';
+            showGuideBtn.style.pointerEvents = 'auto';
+        }
+
+        function showGuidePanel() {
+            if (guideTimeout) clearTimeout(guideTimeout);
+            guideInteracted = true;
+            guidePanel.style.opacity = '1';
+            guidePanel.style.pointerEvents = 'auto';
+            showGuideBtn.style.pointerEvents = 'none';
+            guideAutohideMsg.textContent = 'Press H or click Hide to dismiss.';
+        }
+
+        // Cancel auto-hide if user interacts with the simulator panel
+        ['mouseenter', 'focusin', 'click'].forEach(evt => {
+            guidePanel.addEventListener(evt, () => {
+                if (!guideInteracted) {
+                    guideInteracted = true;
+                    if (guideTimeout) clearTimeout(guideTimeout);
+                    guideAutohideMsg.textContent = 'Press H or click Hide to dismiss.';
+                }
+            });
+        });
+
+        // Hide the instruction guide after 10 seconds if untouched (for OBS stream)
+        guideTimeout = setTimeout(() => {
+            if (!guideInteracted) {
+                hideGuidePanel();
+            }
         }, 10000);
+
+        // Toggle guide panel with 'H' key (when not typing in an input)
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key.toLowerCase() === 'h') {
+                if (guidePanel.style.opacity === '0') {
+                    showGuidePanel();
+                } else {
+                    hideGuidePanel();
+                }
+            }
+        });
 
         // --- DOM Elements ---
         const container = document.getElementById('overlay-container');
@@ -173,9 +273,11 @@
         const flashScreen = document.getElementById('flash-screen');
         const penaltyNotif = document.getElementById('penalty-notification');
         const warningIcons = document.querySelectorAll('svg');
+        const simulateWordInput = document.getElementById('simulate-word-input');
 
         // --- State Variables ---
         let timerInterval = null;
+        let banOverTimeout = null;
         let remainingSeconds = 0;
         let isActive = false;
         const DEFAULT_TIME = 180; // 3 minutes in seconds
@@ -198,6 +300,11 @@
 
         // Display the overlay and start setting it up
         function showOverlay(word) {
+            if (banOverTimeout) {
+                clearTimeout(banOverTimeout);
+                banOverTimeout = null;
+            }
+
             // Reset Styles
             wordDisplay.textContent = word;
             wordDisplay.className = "text-white text-6xl md:text-7xl font-black tracking-wide uppercase my-2 text-center break-words max-w-full drop-shadow-lg";
@@ -205,12 +312,13 @@
             statusTitle.textContent = "BANNED WORD";
             statusTitle.className = "text-red-500 font-black tracking-widest text-2xl text-glow-red uppercase";
             
-            container.classList.replace('border-green-500', 'border-red-500');
+            container.style.borderColor = "#ef4444";
             container.style.boxShadow = "0 0 25px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3)";
             
             warningIcons.forEach(icon => {
                 icon.classList.remove('hidden');
                 icon.classList.replace('text-green-500', 'text-red-500');
+                icon.classList.add('animate-pulse');
             });
             
             timerDisplay.classList.remove('hidden');
@@ -226,6 +334,10 @@
             container.classList.remove('show');
             isActive = false;
             if (timerInterval) clearInterval(timerInterval);
+            if (banOverTimeout) {
+                clearTimeout(banOverTimeout);
+                banOverTimeout = null;
+            }
         }
 
         // Play visual effects for penalty
@@ -269,7 +381,7 @@
                     statusTitle.textContent = "SAFE TO SPEAK";
                     statusTitle.className = "text-green-500 font-black tracking-widest text-2xl text-glow-green uppercase";
                     
-                    container.classList.replace('border-red-500', 'border-green-500');
+                    container.style.borderColor = "#22c55e";
                     container.style.boxShadow = "0 0 25px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3)";
 
                     warningIcons.forEach(icon => {
@@ -278,11 +390,47 @@
                     });
                     
                     // Wait a few seconds, then hide the box automatically
-                    setTimeout(() => {
+                    banOverTimeout = setTimeout(() => {
                         hideOverlay();
                     }, 5000); 
                 }
             }, 1000);
+        }
+
+        // --- Simulation Helpers ---
+
+        function simulateBan(word, duration = DEFAULT_TIME) {
+            const targetWord = (word || simulateWordInput.value || 'WORD').trim();
+            showOverlay(targetWord);
+            startTimer(duration);
+        }
+
+        function handleSimulateSubmit(event) {
+            event.preventDefault();
+            simulateBan(simulateWordInput.value);
+        }
+
+        function simulatePenalty() {
+            if (!isActive || remainingSeconds <= 0) {
+                simulateBan(simulateWordInput.value);
+            }
+            remainingSeconds += PENALTY_TIME;
+            updateTimerDisplay();
+            triggerPenaltyFlash();
+        }
+
+        function simulateEndingSoon() {
+            if (!isActive || remainingSeconds <= 0) {
+                showOverlay((simulateWordInput.value || 'WORD').trim());
+            }
+            startTimer(3);
+        }
+
+        // Optional URL parameter to auto-simulate on load: ?simulate=word
+        const simulatedWordParam = urlParams.get('simulate');
+        if (simulatedWordParam) {
+            simulateWordInput.value = simulatedWordParam;
+            simulateBan(simulatedWordParam);
         }
 
         // --- Twitch Connection & Chat Handling ---
