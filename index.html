@@ -85,7 +85,61 @@
 
         /* Guide panel fade */
         #guide-panel {
-            transition: opacity 1s ease-in-out;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* Speech bubble tail pointing left toward avatar */
+        .speech-bubble {
+            position: relative;
+            background: rgba(24, 24, 27, 0.95);
+            border: 3px solid #f4f4f5;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 24px;
+            width: 0;
+            height: 0;
+            border-top: 12px solid transparent;
+            border-bottom: 16px solid transparent;
+            border-right: 22px solid #f4f4f5;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: -17px;
+            top: 26px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 14px solid transparent;
+            border-right: 19px solid rgba(24, 24, 27, 0.95);
+        }
+
+        /* Red diagonal prohibition slash across the word */
+        .no-ban-slash {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 1rem;
+        }
+
+        .no-ban-slash::after {
+            content: '';
+            width: 90%;
+            height: 7px;
+            background: #ef4444;
+            border-radius: 9999px;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.95), 0 0 4px rgba(0, 0, 0, 0.8);
+            transform: rotate(-28deg);
         }
     </style>
 </head>
@@ -95,38 +149,57 @@
     <div id="flash-screen" class="flash-overlay"></div>
 
     <!-- Main Ban Overlay Box (Left side — keep on-screen in OBS) -->
-    <div id="overlay-container" class="relative bg-zinc-950/90 neon-box rounded-2xl px-10 py-8 flex flex-col items-center justify-center min-w-[500px] max-w-[800px] overflow-hidden shadow-2xl z-20 shrink-0">
+    <div id="overlay-container" class="relative bg-zinc-950/90 neon-box rounded-3xl px-10 py-7 flex flex-col items-center justify-center min-w-[540px] max-w-[820px] overflow-hidden shadow-2xl z-20 shrink-0">
         
         <!-- Animated warning stripes -->
-        <div class="absolute inset-0 warning-stripes opacity-50"></div>
+        <div class="absolute inset-0 warning-stripes opacity-40"></div>
         
         <div class="relative z-10 flex flex-col items-center w-full">
             
-            <!-- Header section -->
-            <div class="flex items-center gap-4 mb-3">
-                <svg class="w-10 h-10 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-                <h1 id="status-title" class="text-red-500 font-black tracking-widest text-2xl text-glow-red uppercase">
-                    Banned Word
-                </h1>
-                <svg class="w-10 h-10 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
+            <!-- Header: IRL WORD BAN -->
+            <h1 id="status-title" class="text-red-500 font-black tracking-wider text-4xl md:text-5xl text-glow-red uppercase leading-tight text-center">
+                IRL WORD BAN
+            </h1>
+
+            <!-- Subheader: THANKS TO [USERNAME] -->
+            <div id="redeemer-line" class="text-zinc-200 font-extrabold tracking-widest text-lg md:text-xl uppercase mt-1 mb-5 text-center">
+                THANKS TO <span id="redeemer-display" class="text-red-400 text-glow-red">MRPOUNDSIGN</span>
             </div>
             
-            <!-- The banned word -->
-            <div id="word-display" class="text-white text-6xl md:text-7xl font-black tracking-wide uppercase my-2 text-center break-words max-w-full drop-shadow-lg">
-                WORD
+            <!-- Middle Row: Avatar + Speech Bubble with Banned Word & Red Diagonal Slash -->
+            <div class="flex items-center justify-center gap-8 my-2 w-full px-2">
+                <!-- Streamer Avatar -->
+                <div id="avatar-wrapper" class="relative w-28 h-28 rounded-full border-4 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center">
+                    <img
+                        id="streamer-avatar"
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23d946ef'/%3E%3Ccircle cx='50' cy='38' r='16' fill='none' stroke='%2318181b' stroke-width='4'/%3E%3Ccircle cx='44' cy='35' r='2' fill='%2318181b'/%3E%3Ccircle cx='56' cy='35' r='2' fill='%2318181b'/%3E%3Cpath d='M46 42 Q50 46 54 42' fill='none' stroke='%2318181b' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M28 92 Q50 55 72 92' fill='none' stroke='%2318181b' stroke-width='4'/%3E%3C/svg%3E"
+                        alt="Streamer Avatar"
+                        class="w-full h-full object-cover"
+                    />
+                </div>
+
+                <!-- Chat Speech Bubble -->
+                <div id="speech-bubble" class="speech-bubble rounded-2xl px-9 py-5 min-w-[240px] max-w-[460px] flex items-center justify-center">
+                    <div id="word-display" class="text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center break-words max-w-full drop-shadow-lg select-none">
+                        DUCKS
+                    </div>
+                    <!-- Diagonal Red Line ("No Smoking" style slash) -->
+                    <div id="ban-slash" class="no-ban-slash"></div>
+                </div>
             </div>
             
-            <!-- The countdown timer -->
-            <div id="timer-display" class="text-red-400 timer-font text-7xl md:text-8xl font-extrabold mt-3 text-glow-red tracking-tight">
-                03:00
+            <!-- Bottom Row: TIME LEFT: 2:45 -->
+            <div id="timer-row" class="flex items-baseline justify-center gap-4 mt-5">
+                <span id="timer-label" class="text-zinc-200 font-black tracking-wider text-3xl md:text-4xl uppercase">
+                    TIME LEFT:
+                </span>
+                <span id="timer-display" class="text-red-400 timer-font text-5xl md:text-6xl font-extrabold text-glow-red tracking-tight">
+                    3:00
+                </span>
             </div>
 
             <!-- Dynamic Penalty Text Notification (Pops up over the box) -->
-            <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap">
+            <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap z-30">
                 +3 MIN PENALTY!
             </div>
         </div>
@@ -146,12 +219,13 @@
                 </button>
             </div>
             <p class="mb-2 text-gray-300">Channel: <span id="current-channel-display" class="font-mono text-green-400 font-bold">...</span></p>
-            <p class="mb-2 text-xs text-gray-400">To change channel, use <br><code class="bg-black p-1 rounded">?channel=your_username</code> in the URL.</p>
+            <p class="mb-2 text-xs text-gray-400">URL params: <code class="bg-black p-1 rounded">?channel=name</code> &amp; optional <code class="bg-black p-1 rounded">?avatar=url</code></p>
             <div class="mt-3">
-                <strong class="text-gray-200">Chat Commands (Mod/Streamer):</strong>
+                <strong class="text-gray-200">Triggers:</strong>
                 <ul class="list-disc pl-5 mt-1 space-y-1 text-gray-300 text-xs">
-                    <li><code class="text-pink-400">!wordban [word]</code> - Starts 3min ban.</li>
-                    <li><code class="text-pink-400">!penalty</code> - Adds 3 mins & flashes.</li>
+                    <li><span class="text-purple-400 font-semibold">Channel Points</span> - Any text-input reward redemption auto-starts ban.</li>
+                    <li><code class="text-pink-400">!wordban [word] [user]</code> - Starts 3m ban (Mod/Streamer).</li>
+                    <li><code class="text-pink-400">!penalty</code> - Adds 3 mins &amp; flashes.</li>
                     <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
                 </ul>
             </div>
@@ -159,17 +233,32 @@
             <!-- Simulate Word Ban Controls -->
             <div class="mt-4 pt-3 border-t border-gray-700">
                 <strong class="text-gray-200 block mb-2">Simulate Word Ban:</strong>
-                <form id="simulate-form" class="flex gap-2 mb-2" onsubmit="handleSimulateSubmit(event)">
-                    <input
-                        id="simulate-word-input"
-                        type="text"
-                        placeholder="Enter banned word..."
-                        value="CRINGE"
-                        class="flex-1 min-w-0 bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
-                    />
+                <form id="simulate-form" class="flex flex-col gap-2 mb-2" onsubmit="handleSimulateSubmit(event)">
+                    <div class="flex gap-2">
+                        <div class="flex-1 min-w-0">
+                            <label class="block text-[11px] text-gray-400 mb-0.5">Banned Word</label>
+                            <input
+                                id="simulate-word-input"
+                                type="text"
+                                placeholder="Word..."
+                                value="DUCKS"
+                                class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
+                            />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <label class="block text-[11px] text-gray-400 mb-0.5">Redeemed By</label>
+                            <input
+                                id="simulate-user-input"
+                                type="text"
+                                placeholder="Username..."
+                                value="MRPOUNDSIGN"
+                                class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
+                            />
+                        </div>
+                    </div>
                     <button
                         type="submit"
-                        class="bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                        class="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors"
                     >
                         Ban Word
                     </button>
@@ -207,13 +296,39 @@
     <script>
         // --- Configuration & Initialization ---
         
-        // Get channel from URL parameters, defaulting to 'twitch'
+        // Get channel & optional avatar from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const channelName = urlParams.get('channel') || 'twitch';
+        const customAvatarUrl = urlParams.get('avatar');
+        const customRewardId = urlParams.get('reward_id');
         const guidePanel = document.getElementById('guide-panel');
         const showGuideBtn = document.getElementById('show-guide-btn');
+        const streamerAvatarImg = document.getElementById('streamer-avatar');
 
         document.getElementById('current-channel-display').textContent = channelName;
+
+        // Load streamer avatar (custom ?avatar= URL override, or auto-fetch from Twitch channel)
+        async function loadStreamerAvatar() {
+            if (customAvatarUrl) {
+                streamerAvatarImg.src = customAvatarUrl;
+                return;
+            }
+            const cleanChannel = channelName.toLowerCase().replace(/^#/, '');
+            try {
+                const res = await fetch(`https://decapi.me/twitch/avatar/${encodeURIComponent(cleanChannel)}`);
+                if (res.ok) {
+                    const avatarUrl = (await res.text()).trim();
+                    if (avatarUrl.startsWith('http')) {
+                        streamerAvatarImg.src = avatarUrl;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch avatar from decapi, trying fallback:', e);
+            }
+            streamerAvatarImg.src = `https://unavatar.io/twitch/${encodeURIComponent(cleanChannel)}`;
+        }
+        loadStreamerAvatar();
 
         function hideGuidePanel() {
             guidePanel.style.opacity = '0';
@@ -244,12 +359,18 @@
         // --- DOM Elements ---
         const container = document.getElementById('overlay-container');
         const statusTitle = document.getElementById('status-title');
+        const redeemerLine = document.getElementById('redeemer-line');
+        const redeemerDisplay = document.getElementById('redeemer-display');
+        const avatarWrapper = document.getElementById('avatar-wrapper');
+        const banSlash = document.getElementById('ban-slash');
         const wordDisplay = document.getElementById('word-display');
+        const timerRow = document.getElementById('timer-row');
+        const timerLabel = document.getElementById('timer-label');
         const timerDisplay = document.getElementById('timer-display');
         const flashScreen = document.getElementById('flash-screen');
         const penaltyNotif = document.getElementById('penalty-notification');
-        const warningIcons = document.querySelectorAll('svg');
         const simulateWordInput = document.getElementById('simulate-word-input');
+        const simulateUserInput = document.getElementById('simulate-user-input');
 
         // --- State Variables ---
         let timerInterval = null;
@@ -261,10 +382,10 @@
 
         // --- Core Logic ---
 
-        // Format seconds to MM:SS string
+        // Format seconds to M:SS string (no leading zero on minutes)
         function formatTime(secs) {
             if (secs < 0) secs = 0;
-            const m = Math.floor(secs / 60).toString().padStart(2, '0');
+            const m = Math.floor(secs / 60).toString();
             const s = (secs % 60).toString().padStart(2, '0');
             return `${m}:${s}`;
         }
@@ -275,29 +396,35 @@
         }
 
         // Display the overlay and start setting it up
-        function showOverlay(word) {
+        function showOverlay(word, redeemer) {
             if (banOverTimeout) {
                 clearTimeout(banOverTimeout);
                 banOverTimeout = null;
             }
 
+            const cleanRedeemer = (redeemer || 'CHAT').replace(/^@/, '').trim();
+
             // Reset Styles
             wordDisplay.textContent = word;
-            wordDisplay.className = "text-white text-6xl md:text-7xl font-black tracking-wide uppercase my-2 text-center break-words max-w-full drop-shadow-lg";
+            wordDisplay.className = "text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center break-words max-w-full drop-shadow-lg select-none";
             
-            statusTitle.textContent = "BANNED WORD";
-            statusTitle.className = "text-red-500 font-black tracking-widest text-2xl text-glow-red uppercase";
+            statusTitle.textContent = "IRL WORD BAN";
+            statusTitle.className = "text-red-500 font-black tracking-wider text-4xl md:text-5xl text-glow-red uppercase leading-tight text-center";
+
+            redeemerDisplay.textContent = cleanRedeemer;
+            redeemerDisplay.className = "text-red-400 text-glow-red";
+            redeemerLine.classList.remove('hidden');
+
+            banSlash.classList.remove('hidden');
+            avatarWrapper.className = "relative w-28 h-28 rounded-full border-4 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center";
             
             container.style.borderColor = "#ef4444";
             container.style.boxShadow = "0 0 25px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3)";
             
-            warningIcons.forEach(icon => {
-                icon.classList.remove('hidden');
-                icon.classList.replace('text-green-500', 'text-red-500');
-                icon.classList.add('animate-pulse');
-            });
-            
+            timerLabel.textContent = "TIME LEFT:";
+            timerLabel.className = "text-zinc-200 font-black tracking-wider text-3xl md:text-4xl uppercase";
             timerDisplay.classList.remove('hidden');
+            timerDisplay.className = "text-red-400 timer-font text-5xl md:text-6xl font-extrabold text-glow-red tracking-tight";
             timerDisplay.textContent = formatTime(DEFAULT_TIME);
             
             // Show Container
@@ -349,21 +476,21 @@
                     isActive = false;
                     
                     // Transformation to "BAN OVER" screen
+                    banSlash.classList.add('hidden');
+                    wordDisplay.className = "text-green-400 text-glow-green text-5xl md:text-6xl font-black tracking-wider uppercase text-center break-words max-w-full select-none";
+                    
+                    statusTitle.textContent = "SAFE TO SPEAK!";
+                    statusTitle.className = "text-green-400 font-black tracking-wider text-4xl md:text-5xl text-glow-green uppercase leading-tight text-center";
+                    
+                    redeemerDisplay.className = "text-green-400 text-glow-green";
+                    avatarWrapper.className = "relative w-28 h-28 rounded-full border-4 border-green-500 shadow-[0_0_20px_rgba(74,222,128,0.6)] overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center";
+
+                    timerLabel.textContent = "BAN OVER!";
+                    timerLabel.className = "text-green-400 text-glow-green font-black tracking-wider text-3xl md:text-4xl uppercase";
                     timerDisplay.classList.add('hidden');
-                    
-                    wordDisplay.textContent = 'BAN OVER!';
-                    wordDisplay.className = "text-green-400 text-glow-green text-7xl md:text-8xl font-black tracking-wide uppercase my-6 text-center";
-                    
-                    statusTitle.textContent = "SAFE TO SPEAK";
-                    statusTitle.className = "text-green-500 font-black tracking-widest text-2xl text-glow-green uppercase";
-                    
+
                     container.style.borderColor = "#22c55e";
                     container.style.boxShadow = "0 0 25px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3)";
-
-                    warningIcons.forEach(icon => {
-                        icon.classList.replace('text-red-500', 'text-green-500');
-                        icon.classList.remove('animate-pulse');
-                    });
                     
                     // Wait a few seconds, then hide the box automatically
                     banOverTimeout = setTimeout(() => {
@@ -375,20 +502,21 @@
 
         // --- Simulation Helpers ---
 
-        function simulateBan(word, duration = DEFAULT_TIME) {
-            const targetWord = (word || simulateWordInput.value || 'WORD').trim();
-            showOverlay(targetWord);
+        function simulateBan(word, redeemer, duration = DEFAULT_TIME) {
+            const targetWord = (word || simulateWordInput.value || 'DUCKS').trim();
+            const targetUser = (redeemer || simulateUserInput.value || 'MRPOUNDSIGN').trim();
+            showOverlay(targetWord, targetUser);
             startTimer(duration);
         }
 
         function handleSimulateSubmit(event) {
             event.preventDefault();
-            simulateBan(simulateWordInput.value);
+            simulateBan(simulateWordInput.value, simulateUserInput.value);
         }
 
         function simulatePenalty() {
             if (!isActive || remainingSeconds <= 0) {
-                simulateBan(simulateWordInput.value);
+                simulateBan(simulateWordInput.value, simulateUserInput.value);
             }
             remainingSeconds += PENALTY_TIME;
             updateTimerDisplay();
@@ -397,23 +525,43 @@
 
         function simulateEndingSoon() {
             if (!isActive || remainingSeconds <= 0) {
-                showOverlay((simulateWordInput.value || 'WORD').trim());
+                showOverlay(
+                    (simulateWordInput.value || 'DUCKS').trim(),
+                    (simulateUserInput.value || 'MRPOUNDSIGN').trim()
+                );
             }
             startTimer(3);
         }
 
-        // Optional URL parameter to auto-simulate on load: ?simulate=word
+        // Optional URL parameter to auto-simulate on load: ?simulate=word&user=redeemer
         const simulatedWordParam = urlParams.get('simulate');
+        const simulatedUserParam = urlParams.get('user');
+        if (simulatedUserParam) {
+            simulateUserInput.value = simulatedUserParam;
+        }
         if (simulatedWordParam) {
             simulateWordInput.value = simulatedWordParam;
-            simulateBan(simulatedWordParam);
+            simulateBan(simulatedWordParam, simulatedUserParam || simulateUserInput.value);
         }
 
         // --- Twitch Connection & Chat Handling (Native IRC WebSocket) ---
 
-        function handleChatMessage(tags, message) {
-            // Permissions Check:
-            // Check if user is Broadcaster or Mod (bypassed if listening to default 'twitch' channel)
+        function handleChatMessage(tags, message, senderUsername) {
+            const senderDisplay = tags['display-name'] || senderUsername || 'CHAT';
+            const trimmedMsg = message.trim();
+
+            // 1. Check for Twitch Channel Points Redemption (with text input)
+            if (tags['custom-reward-id']) {
+                if (!customRewardId || tags['custom-reward-id'] === customRewardId) {
+                    if (trimmedMsg) {
+                        showOverlay(trimmedMsg, senderDisplay);
+                        startTimer(DEFAULT_TIME);
+                        return;
+                    }
+                }
+            }
+
+            // 2. Permissions Check for Chat Commands (Broadcaster or Mod, or default 'twitch' test channel)
             const isBroadcaster = tags.badges?.broadcaster === '1';
             const isMod = tags.mod || tags.badges?.moderator === '1';
             const isTestMode = (channelName.toLowerCase() === 'twitch');
@@ -421,13 +569,21 @@
 
             if (!hasPermission) return;
 
-            const args = message.trim().split(/\s+/);
+            const args = trimmedMsg.split(/\s+/);
             const command = args[0].toLowerCase();
 
             if (command === '!wordban' && args.length > 1) {
-                // Combine remaining arguments into the banned word (allows phrases)
-                const word = args.slice(1).join(' ');
-                showOverlay(word);
+                // Format: !wordban [word] [username] (defaults to command sender if username is omitted)
+                let word = args[1];
+                let redeemer = senderDisplay;
+
+                if (args.length >= 3) {
+                    // Treat the last argument as the redeemer username, and preceding args as the word/phrase
+                    redeemer = args[args.length - 1].replace(/^@/, '');
+                    word = args.slice(1, -1).join(' ');
+                }
+
+                showOverlay(word, redeemer);
                 startTimer(DEFAULT_TIME);
             }
             else if (command === '!penalty') {
@@ -500,9 +656,10 @@
 
                     const privmsgMatch = rest.match(/^:([^!]+)!.*?\s+PRIVMSG\s+#\S+\s+:(.*)$/);
                     if (privmsgMatch) {
+                        const senderUsername = privmsgMatch[1];
                         const message = privmsgMatch[2];
                         const tags = parseIrcTags(rawTags);
-                        handleChatMessage(tags, message);
+                        handleChatMessage(tags, message, senderUsername);
                     }
                 }
             });
