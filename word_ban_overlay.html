@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch Word Ban Overlay</title>
+    <!-- Tailwind CSS for rapid styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- tmi.js for Twitch Chat Integration -->
+    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
+    
+    <style>
+        /* Import a monospace font for the timer and a bold font for the word */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@700;800&display=swap');
+
+        body {
+            /* Keep background purely transparent for OBS */
+            background-color: transparent; 
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom warning box aesthetics */
+        .neon-box {
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3);
+            border: 2px solid #ef4444;
+            backdrop-filter: blur(12px);
+        }
+
+        .text-glow-red {
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+
+        .text-glow-green {
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.8), 0 0 20px rgba(74, 222, 128, 0.6);
+        }
+        
+        .timer-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Penalty full-screen flash */
+        .flash-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(239, 68, 68, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s ease-out;
+            z-index: 10;
+        }
+
+        .flash-active {
+            opacity: 1;
+            transition: opacity 0.05s ease-in;
+        }
+
+        /* Diagonal warning stripes in background */
+        .warning-stripes {
+            background: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 15px,
+                rgba(239, 68, 68, 0.15) 15px,
+                rgba(239, 68, 68, 0.15) 30px
+            );
+            background-size: 42px 42px;
+            animation: moveStripes 1s linear infinite;
+        }
+
+        @keyframes moveStripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 42px 0; }
+        }
+
+        /* Animation for sliding the container in and out */
+        #overlay-container {
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease-out;
+            transform: translateY(-150%) scale(0.9);
+            opacity: 0;
+        }
+
+        #overlay-container.show {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        /* Guide panel fade */
+        #guide-panel {
+            transition: opacity 1s ease-in-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex justify-center pt-10">
+
+    <!-- Helper Guide (Fades away so it won't show on stream for long) -->
+    <div id="guide-panel" class="fixed top-4 left-4 bg-gray-900/90 text-white text-sm p-4 rounded-xl shadow-2xl border border-gray-700 max-w-sm z-50">
+        <h2 class="font-bold text-lg text-blue-400 mb-2">Overlay Configured!</h2>
+        <p class="mb-2 text-gray-300">Currently listening to channel: <span id="current-channel-display" class="font-mono text-green-400 font-bold">...</span></p>
+        <p class="mb-2 text-xs text-gray-400">To change channel, use <br><code class="bg-black p-1 rounded">?channel=your_username</code> in the URL.</p>
+        <div class="mt-3">
+            <strong class="text-gray-200">Chat Commands (Mod/Streamer only):</strong>
+            <ul class="list-disc pl-5 mt-1 space-y-1 text-gray-300">
+                <li><code class="text-pink-400">!wordban [word]</code> - Starts overlay & 3min timer.</li>
+                <li><code class="text-pink-400">!penalty</code> - Adds 3 mins & flashes screen.</li>
+                <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
+            </ul>
+        </div>
+        <p class="mt-4 text-xs text-gray-500 italic">This setup guide will auto-hide in 10 seconds...</p>
+    </div>
+
+    <!-- Full screen red flash for penalty -->
+    <div id="flash-screen" class="flash-overlay"></div>
+
+    <!-- Main Ban Overlay Box -->
+    <div id="overlay-container" class="relative bg-zinc-950/90 neon-box rounded-2xl px-10 py-8 flex flex-col items-center justify-center min-w-[500px] max-w-[800px] overflow-hidden shadow-2xl z-20">
+        
+        <!-- Animated warning stripes -->
+        <div class="absolute inset-0 warning-stripes opacity-50"></div>
+        
+        <div class="relative z-10 flex flex-col items-center w-full">
+            
+            <!-- Header section -->
+            <div class="flex items-center gap-4 mb-3">
+                <svg class="w-10 h-10 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <h1 id="status-title" class="text-red-500 font-black tracking-widest text-2xl text-glow-red uppercase">
+                    Banned Word
+                </h1>
+                <svg class="w-10 h-10 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            
+            <!-- The banned word -->
+            <div id="word-display" class="text-white text-6xl md:text-7xl font-black tracking-wide uppercase my-2 text-center break-words max-w-full drop-shadow-lg">
+                WORD
+            </div>
+            
+            <!-- The countdown timer -->
+            <div id="timer-display" class="text-red-400 timer-font text-7xl md:text-8xl font-extrabold mt-3 text-glow-red tracking-tight">
+                03:00
+            </div>
+
+            <!-- Dynamic Penalty Text Notification (Pops up over the box) -->
+            <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap">
+                +3 MIN PENALTY!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & Initialization ---
+        
+        // Get channel from URL parameters, defaulting to 'twitch'
+        const urlParams = new URLSearchParams(window.location.search);
+        const channelName = urlParams.get('channel') || 'twitch';
+        
+        // Hide the instruction guide after 10 seconds
+        document.getElementById('current-channel-display').textContent = channelName;
+        setTimeout(() => {
+            const guide = document.getElementById('guide-panel');
+            guide.style.opacity = '0';
+            setTimeout(() => guide.remove(), 1000);
+        }, 10000);
+
+        // --- DOM Elements ---
+        const container = document.getElementById('overlay-container');
+        const statusTitle = document.getElementById('status-title');
+        const wordDisplay = document.getElementById('word-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const flashScreen = document.getElementById('flash-screen');
+        const penaltyNotif = document.getElementById('penalty-notification');
+        const warningIcons = document.querySelectorAll('svg');
+
+        // --- State Variables ---
+        let timerInterval = null;
+        let remainingSeconds = 0;
+        let isActive = false;
+        const DEFAULT_TIME = 180; // 3 minutes in seconds
+        const PENALTY_TIME = 180; // 3 minutes in seconds
+
+        // --- Core Logic ---
+
+        // Format seconds to MM:SS string
+        function formatTime(secs) {
+            if (secs < 0) secs = 0;
+            const m = Math.floor(secs / 60).toString().padStart(2, '0');
+            const s = (secs % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // Update DOM timer element
+        function updateTimerDisplay() {
+            timerDisplay.textContent = formatTime(remainingSeconds);
+        }
+
+        // Display the overlay and start setting it up
+        function showOverlay(word) {
+            // Reset Styles
+            wordDisplay.textContent = word;
+            wordDisplay.className = "text-white text-6xl md:text-7xl font-black tracking-wide uppercase my-2 text-center break-words max-w-full drop-shadow-lg";
+            
+            statusTitle.textContent = "BANNED WORD";
+            statusTitle.className = "text-red-500 font-black tracking-widest text-2xl text-glow-red uppercase";
+            
+            container.classList.replace('border-green-500', 'border-red-500');
+            container.style.boxShadow = "0 0 25px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3)";
+            
+            warningIcons.forEach(icon => {
+                icon.classList.remove('hidden');
+                icon.classList.replace('text-green-500', 'text-red-500');
+            });
+            
+            timerDisplay.classList.remove('hidden');
+            timerDisplay.textContent = formatTime(DEFAULT_TIME);
+            
+            // Show Container
+            container.classList.add('show');
+            isActive = true;
+        }
+
+        // Immediately hide overlay and clean up state
+        function hideOverlay() {
+            container.classList.remove('show');
+            isActive = false;
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        // Play visual effects for penalty
+        function triggerPenaltyFlash() {
+            // Full screen red flash
+            flashScreen.classList.add('flash-active');
+            
+            // Pop-up text graphic
+            penaltyNotif.style.opacity = '1';
+            penaltyNotif.style.transform = 'translate(-50%, -50%) scale(1) rotate(-8deg)';
+            
+            // Revert animations after slight delay
+            setTimeout(() => {
+                flashScreen.classList.remove('flash-active');
+                penaltyNotif.style.opacity = '0';
+                penaltyNotif.style.transform = 'translate(-50%, -50%) scale(0.5) rotate(0deg)';
+            }, 1200);
+        }
+
+        // Initiate the countdown interval
+        function startTimer(duration) {
+            if (timerInterval) clearInterval(timerInterval);
+            remainingSeconds = duration;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateTimerDisplay();
+
+                // Ban duration ended
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    isActive = false;
+                    
+                    // Transformation to "BAN OVER" screen
+                    timerDisplay.classList.add('hidden');
+                    
+                    wordDisplay.textContent = 'BAN OVER!';
+                    wordDisplay.className = "text-green-400 text-glow-green text-7xl md:text-8xl font-black tracking-wide uppercase my-6 text-center";
+                    
+                    statusTitle.textContent = "SAFE TO SPEAK";
+                    statusTitle.className = "text-green-500 font-black tracking-widest text-2xl text-glow-green uppercase";
+                    
+                    container.classList.replace('border-red-500', 'border-green-500');
+                    container.style.boxShadow = "0 0 25px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3)";
+
+                    warningIcons.forEach(icon => {
+                        icon.classList.replace('text-red-500', 'text-green-500');
+                        icon.classList.remove('animate-pulse');
+                    });
+                    
+                    // Wait a few seconds, then hide the box automatically
+                    setTimeout(() => {
+                        hideOverlay();
+                    }, 5000); 
+                }
+            }, 1000);
+        }
+
+        // --- Twitch Connection & Chat Handling ---
+
+        window.addEventListener('load', () => {
+            if (typeof tmi === 'undefined') {
+                console.error("tmi.js is not defined. The Twitch Chat library failed to load.");
+                document.getElementById('current-channel-display').textContent = "Failed to load tmi.js";
+                return;
+            }
+
+            const client = new tmi.Client({
+                channels: [channelName]
+            });
+            
+            client.connect().catch(console.error);
+
+            client.on('message', (channel, tags, message, self) => {
+                if (self) return; // Ignore own messages from the bot (if applicable)
+
+                // Permissions Check:
+                // Check if user is Broadcaster, Mod.
+                // (For the sake of testing if you haven't given yourself mod in the preview yet, 
+                // we bypass this if listening to the default 'twitch' channel)
+                const isBroadcaster = tags.badges?.broadcaster === '1';
+                const isMod = tags.mod;
+                const isTestMode = (channelName.toLowerCase() === 'twitch'); 
+                const hasPermission = isBroadcaster || isMod || isTestMode;
+
+                if (!hasPermission) return;
+
+                const args = message.trim().split(' ');
+                const command = args[0].toLowerCase();
+
+                if (command === '!wordban' && args.length > 1) {
+                    // Combine remaining arguments into the banned word (allows phrases)
+                    const word = args.slice(1).join(' ');
+                    showOverlay(word);
+                    startTimer(DEFAULT_TIME); 
+                } 
+                else if (command === '!penalty') {
+                    if (isActive && remainingSeconds > 0) {
+                        remainingSeconds += PENALTY_TIME;
+                        updateTimerDisplay();
+                        triggerPenaltyFlash();
+                    }
+                }
+                else if (command === '!clearban') {
+                    hideOverlay();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
