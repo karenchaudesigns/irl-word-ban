@@ -229,6 +229,30 @@
                         Clear Ban
                     </button>
                 </div>
+
+                <!-- Sound Effects Volume / Mute Control -->
+                <div class="mt-3 pt-2.5 border-t border-gray-800 flex items-center justify-between gap-2 text-xs">
+                    <button
+                        id="mute-btn"
+                        type="button"
+                        onclick="toggleMute()"
+                        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2.5 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
+                        title="Mute / Unmute Sound Effects"
+                    >
+                        🔊 SFX
+                    </button>
+                    <input
+                        id="volume-slider"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="70"
+                        oninput="handleVolumeChange(this.value)"
+                        class="flex-1 accent-red-500 cursor-pointer h-1.5 bg-gray-700 rounded-lg"
+                        title="Sound Effects Volume"
+                    />
+                    <span id="volume-label" class="text-gray-400 font-mono text-[11px] w-8 text-right">70%</span>
+                </div>
             </div>
 
             <p id="guide-autohide-msg" class="mt-3 text-xs text-gray-500 italic">Crop or move this top panel off-screen in OBS to use via Interact.</p>
@@ -313,6 +337,162 @@
         const bindRewardBtn = document.getElementById('bind-reward-btn');
 
         document.getElementById('current-channel-display').textContent = channelName;
+
+        // --- Sound Effects (Web Audio API Synthesizer) ---
+        let audioCtx = null;
+        let sfxMuted = urlParams.get('muted') === 'true' || localStorage.getItem('irl_word_ban_muted') === 'true';
+        let sfxVolume = parseFloat(urlParams.get('volume') ?? localStorage.getItem('irl_word_ban_volume') ?? '0.7');
+        if (isNaN(sfxVolume) || sfxVolume < 0 || sfxVolume > 1) sfxVolume = 0.7;
+
+        const muteBtn = document.getElementById('mute-btn');
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumeLabel = document.getElementById('volume-label');
+
+        function updateSoundControlUI() {
+            const pct = Math.round(sfxVolume * 100);
+            volumeSlider.value = sfxMuted ? 0 : pct;
+            volumeLabel.textContent = sfxMuted ? 'MUTE' : `${pct}%`;
+            muteBtn.textContent = sfxMuted || pct === 0 ? '🔇 SFX' : '🔊 SFX';
+        }
+        updateSoundControlUI();
+
+        function getAudioContext() {
+            if (sfxMuted || sfxVolume <= 0) return null;
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return null;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
+
+        // Unlock AudioContext on first user interaction in browser
+        window.addEventListener('pointerdown', () => {
+            if (!sfxMuted && sfxVolume > 0) getAudioContext();
+        }, { once: true });
+
+        function toggleMute() {
+            sfxMuted = !sfxMuted;
+            try { localStorage.setItem('irl_word_ban_muted', String(sfxMuted)); } catch (e) {}
+            updateSoundControlUI();
+            if (!sfxMuted) playCountdownTickSound();
+        }
+
+        function handleVolumeChange(val) {
+            const num = parseInt(val, 10);
+            sfxVolume = Math.max(0, Math.min(1, num / 100));
+            sfxMuted = (sfxVolume === 0);
+            try {
+                localStorage.setItem('irl_word_ban_volume', String(sfxVolume));
+                localStorage.setItem('irl_word_ban_muted', String(sfxMuted));
+            } catch (e) {}
+            updateSoundControlUI();
+        }
+
+        // 1. Word Ban Start Alert (Two-tone warning siren + impact)
+        function playBanStartSound() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const master = ctx.createGain();
+            master.gain.setValueAtTime(0.35 * sfxVolume, now);
+            master.connect(ctx.destination);
+
+            // Warning siren pulses (high-low-high)
+            const notes = [
+                { freq: 659.25, start: 0.0, dur: 0.14 },  // E5
+                { freq: 493.88, start: 0.15, dur: 0.14 }, // B4
+                { freq: 783.99, start: 0.30, dur: 0.28 }  // G5
+            ];
+            notes.forEach(({ freq, start, dur }) => {
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now + start);
+                g.gain.setValueAtTime(0.001, now + start);
+                g.gain.exponentialRampToValueAtTime(0.5, now + start + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+                osc.connect(g);
+                g.connect(master);
+                osc.start(now + start);
+                osc.stop(now + start + dur + 0.02);
+            });
+        }
+
+        // 2. Penalty Buzzer (Double low game-show buzzer)
+        function playPenaltySound() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const master = ctx.createGain();
+            master.gain.setValueAtTime(0.4 * sfxVolume, now);
+            master.connect(ctx.destination);
+
+            [0, 0.22].forEach((offset, idx) => {
+                const dur = idx === 0 ? 0.16 : 0.32;
+                [130.81, 138.59].forEach(freq => { // Dissonant C3 + C#3 buzz
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + offset);
+                    g.gain.setValueAtTime(0.001, now + offset);
+                    g.gain.exponentialRampToValueAtTime(0.45, now + offset + 0.015);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + offset + dur);
+                    osc.connect(g);
+                    g.connect(master);
+                    osc.start(now + offset);
+                    osc.stop(now + offset + dur + 0.02);
+                });
+            });
+        }
+
+        // 3. Final Countdown Tick (3, 2, 1)
+        function playCountdownTickSound() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now); // A5
+            g.gain.setValueAtTime(0.001, now);
+            g.gain.exponentialRampToValueAtTime(0.25 * sfxVolume, now + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            osc.connect(g);
+            g.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+
+        // 4. Ban Over Chime (Bright celebratory C-major arpeggio)
+        function playBanOverSound() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const master = ctx.createGain();
+            master.gain.setValueAtTime(0.35 * sfxVolume, now);
+            master.connect(ctx.destination);
+
+            const chord = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            chord.forEach((freq, i) => {
+                const start = i * 0.08;
+                const dur = i === chord.length - 1 ? 0.55 : 0.25;
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + start);
+                g.gain.setValueAtTime(0.001, now + start);
+                g.gain.exponentialRampToValueAtTime(0.6, now + start + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+                osc.connect(g);
+                g.connect(master);
+                osc.start(now + start);
+                osc.stop(now + start + dur + 0.02);
+            });
+        }
 
         function updateRewardStatusUI() {
             if (isListeningForRewardBind) {
@@ -537,9 +717,10 @@
             timerDisplay.className = "text-red-400 timer-font text-5xl md:text-6xl font-extrabold text-glow-red tracking-tight";
             timerDisplay.textContent = formatTime(DEFAULT_TIME);
             
-            // Show Container
+            // Show Container & Play Sound
             container.classList.add('show');
             isActive = true;
+            playBanStartSound();
         }
 
         // Immediately hide overlay and clean up state
@@ -553,8 +734,10 @@
             }
         }
 
-        // Play visual effects for penalty
+        // Play visual & audio effects for penalty
         function triggerPenaltyFlash() {
+            playPenaltySound();
+
             // Pop-up text graphic
             penaltyNotif.style.opacity = '1';
             penaltyNotif.style.transform = 'translate(-50%, -50%) scale(1) rotate(-8deg)';
@@ -576,10 +759,15 @@
                 remainingSeconds--;
                 updateTimerDisplay();
 
+                if (remainingSeconds > 0 && remainingSeconds <= 3) {
+                    playCountdownTickSound();
+                }
+
                 // Ban duration ended
                 if (remainingSeconds <= 0) {
                     clearInterval(timerInterval);
                     isActive = false;
+                    playBanOverSound();
                     
                     // Transformation to "BAN OVER" screen
                     banSlash.classList.add('hidden');
