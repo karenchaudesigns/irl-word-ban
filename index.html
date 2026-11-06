@@ -230,16 +230,25 @@
                     </button>
                 </div>
 
-                <!-- Sound Effects Volume / Mute Control -->
-                <div class="mt-3 pt-2.5 border-t border-gray-800 flex items-center justify-between gap-2 text-xs">
+                <!-- Sound Effects & TTS Volume / Mute Control -->
+                <div class="mt-3 pt-2.5 border-t border-gray-800 flex items-center justify-between gap-1.5 text-xs">
                     <button
                         id="mute-btn"
                         type="button"
                         onclick="toggleMute()"
-                        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2.5 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
+                        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
                         title="Mute / Unmute Sound Effects"
                     >
                         🔊 SFX
+                    </button>
+                    <button
+                        id="tts-btn"
+                        type="button"
+                        onclick="toggleTts()"
+                        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
+                        title="Enable / Disable TTS Voice Announcements"
+                    >
+                        🗣️ TTS
                     </button>
                     <input
                         id="volume-slider"
@@ -249,7 +258,7 @@
                         value="70"
                         oninput="handleVolumeChange(this.value)"
                         class="flex-1 accent-red-500 cursor-pointer h-1.5 bg-gray-700 rounded-lg"
-                        title="Sound Effects Volume"
+                        title="Audio Volume"
                     />
                     <span id="volume-label" class="text-gray-400 font-mono text-[11px] w-8 text-right">70%</span>
                 </div>
