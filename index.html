@@ -183,7 +183,7 @@
                                 id="simulate-word-input"
                                 type="text"
                                 placeholder="Word..."
-                                value="DUCKS"
+                                value="testword"
                                 class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
                             />
                         </div>
@@ -193,7 +193,7 @@
                                 id="simulate-user-input"
                                 type="text"
                                 placeholder="Username..."
-                                value="MRPOUNDSIGN"
+                                value="testuser"
                                 class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
                             />
                         </div>
@@ -274,7 +274,7 @@
 
             <!-- Subheader: THANKS TO [USERNAME] -->
             <div id="redeemer-line" class="text-zinc-200 font-extrabold tracking-widest text-lg md:text-xl uppercase mt-1 mb-5 text-center whitespace-nowrap">
-                THANKS TO <span id="redeemer-display" class="text-red-400 text-glow-red">MRPOUNDSIGN</span>
+                THANKS TO <span id="redeemer-display" class="text-red-400 text-glow-red">testuser</span>
             </div>
             
             <!-- Middle Row: Avatar + Speech Bubble with Banned Word & Red Diagonal Slash -->
@@ -292,7 +292,7 @@
                 <!-- Chat Speech Bubble (Single-line, expands horizontally for longer words) -->
                 <div id="speech-bubble" class="speech-bubble rounded-2xl px-9 py-5 min-w-[240px] w-fit shrink-0 flex items-center justify-center">
                     <div id="word-display" class="text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center whitespace-nowrap drop-shadow-lg select-none">
-                        DUCKS
+                        testword
                     </div>
                     <!-- Diagonal Red Line ("No Smoking" style slash) -->
                     <div id="ban-slash" class="no-ban-slash"></div>
@@ -909,8 +909,8 @@
         // --- Simulation Helpers ---
 
         function simulateBan(word, redeemer, duration = DEFAULT_TIME, announce = true) {
-            const targetWord = (word || simulateWordInput.value || 'DUCKS').trim();
-            const targetUser = (redeemer || simulateUserInput.value || 'MRPOUNDSIGN').trim();
+            const targetWord = (word || simulateWordInput.value || 'testword').trim();
+            const targetUser = (redeemer || simulateUserInput.value || 'testuser').trim();
             showOverlay(targetWord, targetUser, duration, announce);
             startTimer(duration);
         }
@@ -933,8 +933,8 @@
             stopTts();
             if (!isActive || remainingSeconds <= 0) {
                 showOverlay(
-                    (simulateWordInput.value || 'DUCKS').trim(),
-                    (simulateUserInput.value || 'MRPOUNDSIGN').trim(),
+                    (simulateWordInput.value || 'testword').trim(),
+                    (simulateUserInput.value || 'testuser').trim(),
                     3,
                     false
                 );
