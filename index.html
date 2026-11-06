@@ -37,22 +37,6 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Penalty full-screen flash */
-        .flash-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(239, 68, 68, 0.5);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.1s ease-out;
-            z-index: 10;
-        }
-
-        .flash-active {
-            opacity: 1;
-            transition: opacity 0.05s ease-in;
-        }
-
         /* Diagonal warning stripes in background */
         .warning-stripes {
             background: repeating-linear-gradient(
@@ -147,9 +131,6 @@
 </head>
 <body class="w-screen h-screen flex flex-col items-end justify-start gap-8 pt-6 pr-10">
 
-    <!-- Full screen red flash for penalty -->
-    <div id="flash-screen" class="flash-overlay"></div>
-
     <!-- Helper Guide & Simulator (Top, right-aligned — crop or move top off-screen in OBS to use via OBS Interact) -->
     <div class="relative z-50 shrink-0 flex flex-col items-end">
         <button id="show-guide-btn" onclick="showGuidePanel()" title="Open Simulator & Guide (or press H)" class="absolute top-0 right-0 bg-gray-900/90 hover:bg-gray-800 text-gray-200 hover:text-white text-xs font-semibold px-3 py-2 rounded-lg border border-gray-700 shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 whitespace-nowrap">
@@ -186,7 +167,7 @@
                 <ul class="list-disc pl-5 mt-1 space-y-1 text-gray-300 text-xs">
                     <li><span class="text-purple-400 font-semibold">"IRL Word Ban" Redeem</span> - Only triggers on this specific Channel Point reward.</li>
                     <li><code class="text-pink-400">!wordban [word] [user]</code> - Starts 3m ban (Mod/Streamer).</li>
-                    <li><code class="text-pink-400">!penalty</code> - Adds 3 mins &amp; flashes.</li>
+                    <li><code class="text-pink-400">!penalty</code> - Adds 3 mins.</li>
                     <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
                 </ul>
             </div>
@@ -497,7 +478,6 @@
         const timerRow = document.getElementById('timer-row');
         const timerLabel = document.getElementById('timer-label');
         const timerDisplay = document.getElementById('timer-display');
-        const flashScreen = document.getElementById('flash-screen');
         const penaltyNotif = document.getElementById('penalty-notification');
         const simulateWordInput = document.getElementById('simulate-word-input');
         const simulateUserInput = document.getElementById('simulate-user-input');
@@ -575,16 +555,12 @@
 
         // Play visual effects for penalty
         function triggerPenaltyFlash() {
-            // Full screen red flash
-            flashScreen.classList.add('flash-active');
-            
             // Pop-up text graphic
             penaltyNotif.style.opacity = '1';
             penaltyNotif.style.transform = 'translate(-50%, -50%) scale(1) rotate(-8deg)';
             
             // Revert animations after slight delay
             setTimeout(() => {
-                flashScreen.classList.remove('flash-active');
                 penaltyNotif.style.opacity = '0';
                 penaltyNotif.style.transform = 'translate(-50%, -50%) scale(0.5) rotate(0deg)';
             }, 1200);
