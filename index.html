@@ -74,13 +74,15 @@
         /* Animation for sliding the container in and out */
         #overlay-container {
             transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease-out;
-            transform: translateY(-150%) scale(0.9);
+            transform: translateX(50px) scale(0.95);
             opacity: 0;
+            pointer-events: none;
         }
 
         #overlay-container.show {
-            transform: translateY(0) scale(1);
+            transform: translateX(0) scale(1);
             opacity: 1;
+            pointer-events: auto;
         }
 
         /* Guide panel fade */
@@ -143,71 +145,14 @@
         }
     </style>
 </head>
-<body class="w-screen h-screen flex items-start justify-center gap-12 pt-10 px-10">
+<body class="w-screen h-screen flex flex-col items-end justify-start gap-8 pt-6 pr-10">
 
     <!-- Full screen red flash for penalty -->
     <div id="flash-screen" class="flash-overlay"></div>
 
-    <!-- Main Ban Overlay Box (Left side — keep on-screen in OBS) -->
-    <div id="overlay-container" class="relative bg-zinc-950/90 neon-box rounded-3xl px-10 py-7 flex flex-col items-center justify-center min-w-[540px] max-w-[820px] overflow-hidden shadow-2xl z-20 shrink-0">
-        
-        <!-- Animated warning stripes -->
-        <div class="absolute inset-0 warning-stripes opacity-40"></div>
-        
-        <div class="relative z-10 flex flex-col items-center w-full">
-            
-            <!-- Header: IRL WORD BAN -->
-            <h1 id="status-title" class="text-red-500 font-black tracking-wider text-4xl md:text-5xl text-glow-red uppercase leading-tight text-center">
-                IRL WORD BAN
-            </h1>
-
-            <!-- Subheader: THANKS TO [USERNAME] -->
-            <div id="redeemer-line" class="text-zinc-200 font-extrabold tracking-widest text-lg md:text-xl uppercase mt-1 mb-5 text-center">
-                THANKS TO <span id="redeemer-display" class="text-red-400 text-glow-red">MRPOUNDSIGN</span>
-            </div>
-            
-            <!-- Middle Row: Avatar + Speech Bubble with Banned Word & Red Diagonal Slash -->
-            <div class="flex items-center justify-center gap-8 my-2 w-full px-2">
-                <!-- Streamer Avatar -->
-                <div id="avatar-wrapper" class="relative w-28 h-28 rounded-full border-4 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center">
-                    <img
-                        id="streamer-avatar"
-                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23d946ef'/%3E%3Ccircle cx='50' cy='38' r='16' fill='none' stroke='%2318181b' stroke-width='4'/%3E%3Ccircle cx='44' cy='35' r='2' fill='%2318181b'/%3E%3Ccircle cx='56' cy='35' r='2' fill='%2318181b'/%3E%3Cpath d='M46 42 Q50 46 54 42' fill='none' stroke='%2318181b' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M28 92 Q50 55 72 92' fill='none' stroke='%2318181b' stroke-width='4'/%3E%3C/svg%3E"
-                        alt="Streamer Avatar"
-                        class="w-full h-full object-cover"
-                    />
-                </div>
-
-                <!-- Chat Speech Bubble -->
-                <div id="speech-bubble" class="speech-bubble rounded-2xl px-9 py-5 min-w-[240px] max-w-[460px] flex items-center justify-center">
-                    <div id="word-display" class="text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center break-words max-w-full drop-shadow-lg select-none">
-                        DUCKS
-                    </div>
-                    <!-- Diagonal Red Line ("No Smoking" style slash) -->
-                    <div id="ban-slash" class="no-ban-slash"></div>
-                </div>
-            </div>
-            
-            <!-- Bottom Row: TIME LEFT: 2:45 -->
-            <div id="timer-row" class="flex items-baseline justify-center gap-4 mt-5">
-                <span id="timer-label" class="text-zinc-200 font-black tracking-wider text-3xl md:text-4xl uppercase">
-                    TIME LEFT:
-                </span>
-                <span id="timer-display" class="text-red-400 timer-font text-5xl md:text-6xl font-extrabold text-glow-red tracking-tight">
-                    3:00
-                </span>
-            </div>
-
-            <!-- Dynamic Penalty Text Notification (Pops up over the box) -->
-            <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap z-30">
-                +3 MIN PENALTY!
-            </div>
-        </div>
-    </div>
-
-    <!-- Helper Guide & Simulator (Right side of overlay — place off-screen or crop in OBS to use via OBS Interact) -->
-    <div class="relative z-50 shrink-0">
-        <button id="show-guide-btn" onclick="showGuidePanel()" title="Open Simulator & Guide (or press H)" class="absolute top-0 left-0 bg-gray-900/90 hover:bg-gray-800 text-gray-200 hover:text-white text-xs font-semibold px-3 py-2 rounded-lg border border-gray-700 shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 whitespace-nowrap">
+    <!-- Helper Guide & Simulator (Top, right-aligned — crop or move top off-screen in OBS to use via OBS Interact) -->
+    <div class="relative z-50 shrink-0 flex flex-col items-end">
+        <button id="show-guide-btn" onclick="showGuidePanel()" title="Open Simulator & Guide (or press H)" class="absolute top-0 right-0 bg-gray-900/90 hover:bg-gray-800 text-gray-200 hover:text-white text-xs font-semibold px-3 py-2 rounded-lg border border-gray-700 shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 whitespace-nowrap">
             ⚙️ Simulator / Guide (H)
         </button>
 
@@ -305,7 +250,64 @@
                 </div>
             </div>
 
-            <p id="guide-autohide-msg" class="mt-3 text-xs text-gray-500 italic">Crop or move this right side off-screen in OBS to use via Interact.</p>
+            <p id="guide-autohide-msg" class="mt-3 text-xs text-gray-500 italic">Crop or move this top panel off-screen in OBS to use via Interact.</p>
+        </div>
+    </div>
+
+    <!-- Main Ban Overlay Box (Below controls, right-aligned — keep on-screen in OBS) -->
+    <div id="overlay-container" class="relative bg-zinc-950/90 neon-box rounded-3xl px-10 py-7 flex flex-col items-center justify-center min-w-[540px] w-fit overflow-hidden shadow-2xl z-20 shrink-0">
+        
+        <!-- Animated warning stripes -->
+        <div class="absolute inset-0 warning-stripes opacity-40"></div>
+        
+        <div class="relative z-10 flex flex-col items-center w-full">
+            
+            <!-- Header: IRL WORD BAN -->
+            <h1 id="status-title" class="text-red-500 font-black tracking-wider text-4xl md:text-5xl text-glow-red uppercase leading-tight text-center whitespace-nowrap">
+                IRL WORD BAN
+            </h1>
+
+            <!-- Subheader: THANKS TO [USERNAME] -->
+            <div id="redeemer-line" class="text-zinc-200 font-extrabold tracking-widest text-lg md:text-xl uppercase mt-1 mb-5 text-center whitespace-nowrap">
+                THANKS TO <span id="redeemer-display" class="text-red-400 text-glow-red">MRPOUNDSIGN</span>
+            </div>
+            
+            <!-- Middle Row: Avatar + Speech Bubble with Banned Word & Red Diagonal Slash -->
+            <div class="flex items-center justify-center gap-8 my-2 w-full px-2">
+                <!-- Streamer Avatar -->
+                <div id="avatar-wrapper" class="relative w-28 h-28 rounded-full border-4 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center">
+                    <img
+                        id="streamer-avatar"
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23d946ef'/%3E%3Ccircle cx='50' cy='38' r='16' fill='none' stroke='%2318181b' stroke-width='4'/%3E%3Ccircle cx='44' cy='35' r='2' fill='%2318181b'/%3E%3Ccircle cx='56' cy='35' r='2' fill='%2318181b'/%3E%3Cpath d='M46 42 Q50 46 54 42' fill='none' stroke='%2318181b' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M28 92 Q50 55 72 92' fill='none' stroke='%2318181b' stroke-width='4'/%3E%3C/svg%3E"
+                        alt="Streamer Avatar"
+                        class="w-full h-full object-cover"
+                    />
+                </div>
+
+                <!-- Chat Speech Bubble (Single-line, expands horizontally for longer words) -->
+                <div id="speech-bubble" class="speech-bubble rounded-2xl px-9 py-5 min-w-[240px] w-fit shrink-0 flex items-center justify-center">
+                    <div id="word-display" class="text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center whitespace-nowrap drop-shadow-lg select-none">
+                        DUCKS
+                    </div>
+                    <!-- Diagonal Red Line ("No Smoking" style slash) -->
+                    <div id="ban-slash" class="no-ban-slash"></div>
+                </div>
+            </div>
+            
+            <!-- Bottom Row: TIME LEFT: 2:45 -->
+            <div id="timer-row" class="flex items-baseline justify-center gap-4 mt-5 whitespace-nowrap">
+                <span id="timer-label" class="text-zinc-200 font-black tracking-wider text-3xl md:text-4xl uppercase">
+                    TIME LEFT:
+                </span>
+                <span id="timer-display" class="text-red-400 timer-font text-5xl md:text-6xl font-extrabold text-glow-red tracking-tight">
+                    3:00
+                </span>
+            </div>
+
+            <!-- Dynamic Penalty Text Notification (Pops up over the box) -->
+            <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap z-30">
+                +3 MIN PENALTY!
+            </div>
         </div>
     </div>
 
@@ -534,10 +536,10 @@
 
             // Reset Styles
             wordDisplay.textContent = word;
-            wordDisplay.className = "text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center break-words max-w-full drop-shadow-lg select-none";
+            wordDisplay.className = "text-white text-5xl md:text-6xl font-black tracking-wider uppercase text-center whitespace-nowrap drop-shadow-lg select-none";
             
             statusTitle.textContent = "IRL WORD BAN";
-            statusTitle.className = "text-red-500 font-black tracking-wider text-4xl md:text-5xl text-glow-red uppercase leading-tight text-center";
+            statusTitle.className = "text-red-500 font-black tracking-wider text-4xl md:text-5xl text-glow-red uppercase leading-tight text-center whitespace-nowrap";
 
             redeemerDisplay.textContent = cleanRedeemer;
             redeemerDisplay.className = "text-red-400 text-glow-red";
@@ -605,10 +607,10 @@
                     
                     // Transformation to "BAN OVER" screen
                     banSlash.classList.add('hidden');
-                    wordDisplay.className = "text-green-400 text-glow-green text-5xl md:text-6xl font-black tracking-wider uppercase text-center break-words max-w-full select-none";
+                    wordDisplay.className = "text-green-400 text-glow-green text-5xl md:text-6xl font-black tracking-wider uppercase text-center whitespace-nowrap select-none";
                     
                     statusTitle.textContent = "SAFE TO SPEAK!";
-                    statusTitle.className = "text-green-400 font-black tracking-wider text-4xl md:text-5xl text-glow-green uppercase leading-tight text-center";
+                    statusTitle.className = "text-green-400 font-black tracking-wider text-4xl md:text-5xl text-glow-green uppercase leading-tight text-center whitespace-nowrap";
                     
                     redeemerDisplay.className = "text-green-400 text-glow-green";
                     avatarWrapper.className = "relative w-28 h-28 rounded-full border-4 border-green-500 shadow-[0_0_20px_rgba(74,222,128,0.6)] overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center";
