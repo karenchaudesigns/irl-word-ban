@@ -338,21 +338,32 @@
 
         document.getElementById('current-channel-display').textContent = channelName;
 
-        // --- Sound Effects (Web Audio API Synthesizer) ---
+        let broadcasterDisplayName = cleanChannelName;
+
+        // --- Sound Effects & TTS (Web Audio API + Web Speech API) ---
         let audioCtx = null;
         let sfxMuted = urlParams.get('muted') === 'true' || localStorage.getItem('irl_word_ban_muted') === 'true';
+        let ttsMuted = urlParams.get('tts') === 'false' || localStorage.getItem('irl_word_ban_tts_muted') === 'true';
         let sfxVolume = parseFloat(urlParams.get('volume') ?? localStorage.getItem('irl_word_ban_volume') ?? '0.7');
         if (isNaN(sfxVolume) || sfxVolume < 0 || sfxVolume > 1) sfxVolume = 0.7;
+        let ttsTimeout = null;
 
         const muteBtn = document.getElementById('mute-btn');
+        const ttsBtn = document.getElementById('tts-btn');
         const volumeSlider = document.getElementById('volume-slider');
         const volumeLabel = document.getElementById('volume-label');
 
         function updateSoundControlUI() {
             const pct = Math.round(sfxVolume * 100);
-            volumeSlider.value = sfxMuted ? 0 : pct;
-            volumeLabel.textContent = sfxMuted ? 'MUTE' : `${pct}%`;
+            const allMuted = sfxMuted && ttsMuted;
+            volumeSlider.value = allMuted ? 0 : pct;
+            volumeLabel.textContent = allMuted ? 'MUTE' : `${pct}%`;
             muteBtn.textContent = sfxMuted || pct === 0 ? '🔇 SFX' : '🔊 SFX';
+            muteBtn.className = `bg-gray-800 hover:bg-gray-700 font-semibold px-2 py-1 rounded-lg border transition-colors shrink-0 ${sfxMuted || pct === 0 ? 'text-gray-500 border-gray-800' : 'text-gray-200 border-gray-700'}`;
+            if (ttsBtn) {
+                ttsBtn.textContent = ttsMuted || pct === 0 ? '🔇 TTS' : '🗣️ TTS';
+                ttsBtn.className = `bg-gray-800 hover:bg-gray-700 font-semibold px-2 py-1 rounded-lg border transition-colors shrink-0 ${ttsMuted || pct === 0 ? 'text-gray-500 border-gray-800' : 'text-gray-200 border-gray-700'}`;
+            }
         }
         updateSoundControlUI();
 
@@ -369,10 +380,16 @@
             return audioCtx;
         }
 
-        // Unlock AudioContext on first user interaction in browser
+        // Unlock AudioContext & warm up speechSynthesis on first user interaction
         window.addEventListener('pointerdown', () => {
             if (!sfxMuted && sfxVolume > 0) getAudioContext();
+            if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
         }, { once: true });
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+        }
 
         function toggleMute() {
             sfxMuted = !sfxMuted;
@@ -381,15 +398,99 @@
             if (!sfxMuted) playCountdownTickSound();
         }
 
+        function toggleTts() {
+            ttsMuted = !ttsMuted;
+            try { localStorage.setItem('irl_word_ban_tts_muted', String(ttsMuted)); } catch (e) {}
+            if (ttsMuted) stopTts();
+            updateSoundControlUI();
+        }
+
         function handleVolumeChange(val) {
             const num = parseInt(val, 10);
             sfxVolume = Math.max(0, Math.min(1, num / 100));
-            sfxMuted = (sfxVolume === 0);
+            if (sfxVolume === 0) {
+                sfxMuted = true;
+            } else if (sfxMuted && ttsMuted) {
+                sfxMuted = false;
+                ttsMuted = false;
+            }
             try {
                 localStorage.setItem('irl_word_ban_volume', String(sfxVolume));
                 localStorage.setItem('irl_word_ban_muted', String(sfxMuted));
+                localStorage.setItem('irl_word_ban_tts_muted', String(ttsMuted));
             } catch (e) {}
             updateSoundControlUI();
+        }
+
+        function formatDurationForSpeech(secs) {
+            const mins = Math.floor(secs / 60);
+            const remSecs = secs % 60;
+            const parts = [];
+            if (mins > 0) {
+                parts.push(`${mins} ${mins === 1 ? 'minute' : 'minutes'}`);
+            }
+            if (remSecs > 0 || mins === 0) {
+                parts.push(`${remSecs} ${remSecs === 1 ? 'second' : 'seconds'}`);
+            }
+            return parts.join(' and ');
+        }
+
+        function stopTts() {
+            if (ttsTimeout) {
+                clearTimeout(ttsTimeout);
+                ttsTimeout = null;
+            }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function speakTts(text, delayMs = 0) {
+            if (ttsMuted || sfxVolume <= 0 || !('speechSynthesis' in window)) return;
+            stopTts();
+
+            const runSpeech = () => {
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.volume = Math.max(0, Math.min(1, sfxVolume));
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+
+                    const voices = window.speechSynthesis.getVoices();
+                    if (voices && voices.length > 0) {
+                        const preferredVoice =
+                            voices.find(v => v.lang.startsWith('en') && /natural|google|samantha|zira|david|daniel/i.test(v.name)) ||
+                            voices.find(v => v.lang.startsWith('en')) ||
+                            voices[0];
+                        if (preferredVoice) utterance.voice = preferredVoice;
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    console.warn('TTS playback error:', e);
+                }
+            };
+
+            if (delayMs > 0) {
+                ttsTimeout = setTimeout(runSpeech, delayMs);
+            } else {
+                runSpeech();
+            }
+        }
+
+        function announceBanStart(redeemer, word, durationSecs) {
+            const cleanUser = (redeemer || 'Chat').replace(/^@/, '').trim();
+            const spokenWord = (word || '').trim().toLowerCase();
+            const durationText = formatDurationForSpeech(durationSecs);
+            const message = `${cleanUser} redeemed IRL Word Ban! ${broadcasterDisplayName} cannot say ${spokenWord} for ${durationText}!`;
+            // Delay slightly so the 3-note start siren finishes its initial pulse first
+            speakTts(message, sfxMuted ? 0 : 450);
+        }
+
+        function announceBanEnd(word) {
+            const spokenWord = (word || '').trim().toLowerCase();
+            const message = `The IRL Word Ban is over! ${broadcasterDisplayName} can now say ${spokenWord} again!`;
+            speakTts(message, sfxMuted ? 0 : 350);
         }
 
         // 1. Word Ban Start Alert (Two-tone warning siren + impact)
@@ -544,6 +645,7 @@
                         {
                             query: `query GetChannelRewards($login: String!) {
                                 user(login: $login) {
+                                    displayName
                                     profileImageURL(width: 300)
                                     channel {
                                         communityPointsSettings {
@@ -576,6 +678,9 @@
 
                     for (const item of results) {
                         const userObj = item?.data?.user || item?.data?.community;
+                        if (userObj?.displayName) {
+                            broadcasterDisplayName = userObj.displayName;
+                        }
                         if (!customAvatarUrl && userObj?.profileImageURL) {
                             streamerAvatarImg.src = userObj.profileImageURL;
                         }
@@ -667,6 +772,7 @@
         let banOverTimeout = null;
         let remainingSeconds = 0;
         let isActive = false;
+        let currentBannedWord = '';
         const DEFAULT_TIME = 180; // 3 minutes in seconds
         const PENALTY_TIME = 180; // 3 minutes in seconds
 
@@ -686,13 +792,14 @@
         }
 
         // Display the overlay and start setting it up
-        function showOverlay(word, redeemer) {
+        function showOverlay(word, redeemer, duration = DEFAULT_TIME, announce = true) {
             if (banOverTimeout) {
                 clearTimeout(banOverTimeout);
                 banOverTimeout = null;
             }
 
             const cleanRedeemer = (redeemer || 'CHAT').replace(/^@/, '').trim();
+            currentBannedWord = word;
 
             // Reset Styles
             wordDisplay.textContent = word;
@@ -715,18 +822,22 @@
             timerLabel.className = "text-zinc-200 font-black tracking-wider text-3xl md:text-4xl uppercase";
             timerDisplay.classList.remove('hidden');
             timerDisplay.className = "text-red-400 timer-font text-5xl md:text-6xl font-extrabold text-glow-red tracking-tight";
-            timerDisplay.textContent = formatTime(DEFAULT_TIME);
+            timerDisplay.textContent = formatTime(duration);
             
-            // Show Container & Play Sound
+            // Show Container, Play Sound & Speak TTS
             container.classList.add('show');
             isActive = true;
             playBanStartSound();
+            if (announce) {
+                announceBanStart(cleanRedeemer, word, duration);
+            }
         }
 
         // Immediately hide overlay and clean up state
         function hideOverlay() {
             container.classList.remove('show');
             isActive = false;
+            stopTts();
             if (timerInterval) clearInterval(timerInterval);
             if (banOverTimeout) {
                 clearTimeout(banOverTimeout);
@@ -768,6 +879,7 @@
                     clearInterval(timerInterval);
                     isActive = false;
                     playBanOverSound();
+                    announceBanEnd(currentBannedWord || wordDisplay.textContent);
                     
                     // Transformation to "BAN OVER" screen
                     banSlash.classList.add('hidden');
@@ -796,10 +908,10 @@
 
         // --- Simulation Helpers ---
 
-        function simulateBan(word, redeemer, duration = DEFAULT_TIME) {
+        function simulateBan(word, redeemer, duration = DEFAULT_TIME, announce = true) {
             const targetWord = (word || simulateWordInput.value || 'DUCKS').trim();
             const targetUser = (redeemer || simulateUserInput.value || 'MRPOUNDSIGN').trim();
-            showOverlay(targetWord, targetUser);
+            showOverlay(targetWord, targetUser, duration, announce);
             startTimer(duration);
         }
 
@@ -818,10 +930,13 @@
         }
 
         function simulateEndingSoon() {
+            stopTts();
             if (!isActive || remainingSeconds <= 0) {
                 showOverlay(
                     (simulateWordInput.value || 'DUCKS').trim(),
-                    (simulateUserInput.value || 'MRPOUNDSIGN').trim()
+                    (simulateUserInput.value || 'MRPOUNDSIGN').trim(),
+                    3,
+                    false
                 );
             }
             startTimer(3);
