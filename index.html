@@ -167,7 +167,7 @@
                 <ul class="list-disc pl-5 mt-1 space-y-1 text-gray-300 text-xs">
                     <li><span class="text-purple-400 font-semibold">"IRL Word Ban" Redeem</span> - Only triggers on this specific Channel Point reward.</li>
                     <li><code class="text-pink-400">!wordban [word] [user]</code> - Starts 3m ban (Mod/Streamer).</li>
-                    <li><code class="text-pink-400">!penalty</code> - Adds 3 mins.</li>
+                    <li><code class="text-pink-400">!penalty</code> - Adds 1 min.</li>
                     <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
                 </ul>
             </div>
@@ -211,7 +211,7 @@
                         onclick="simulatePenalty()"
                         class="bg-amber-600/90 hover:bg-amber-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
                     >
-                        +3m Penalty
+                        +1m Penalty
                     </button>
                     <button
                         type="button"
@@ -320,7 +320,7 @@
 
             <!-- Dynamic Penalty Text Notification (Pops up over the box) -->
             <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap z-30">
-                +3 MIN PENALTY!
+                +1 MIN PENALTY!
             </div>
         </div>
     </div>
@@ -783,7 +783,7 @@
         let isActive = false;
         let currentBannedWord = '';
         const DEFAULT_TIME = 180; // 3 minutes in seconds
-        const PENALTY_TIME = 180; // 3 minutes in seconds
+        const PENALTY_TIME = 60; // 1 minute in seconds
 
         // --- Core Logic ---
 
