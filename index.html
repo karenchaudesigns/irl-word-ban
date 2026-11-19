@@ -137,134 +137,141 @@
             ⚙️ Simulator / Guide (H)
         </button>
 
-        <div id="guide-panel" class="bg-gray-900/95 text-white text-sm p-4 rounded-xl shadow-2xl border border-gray-700 w-80">
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="font-bold text-lg text-blue-400">Overlay Controls</h2>
-                <button onclick="hideGuidePanel()" title="Hide panel (H)" class="text-gray-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800 transition-colors">
-                    ✕ Hide
-                </button>
-            </div>
-            <p class="mb-2 text-gray-300">Channel: <span id="current-channel-display" class="font-mono text-green-400 font-bold">...</span></p>
-            <div class="mb-2 flex items-center justify-between gap-2 bg-black/50 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs">
-                <div class="truncate">
-                    <span class="text-gray-400">Redeem:</span>
-                    <span class="text-purple-400 font-semibold">IRL Word Ban</span>
-                    <span id="reward-status-badge" class="ml-1 text-[11px] text-amber-400">(looking up...)</span>
+        <div id="guide-panel" class="bg-gray-900/95 text-white text-sm p-4 rounded-xl shadow-2xl border border-gray-700 w-[680px]">
+            <div class="flex items-center justify-between gap-3 mb-3 pb-2.5 border-b border-gray-800">
+                <div class="flex items-center gap-3 min-w-0">
+                    <h2 class="font-bold text-base text-blue-400 shrink-0">Overlay Controls</h2>
+                    <span class="text-xs text-gray-300 truncate">Channel: <span id="current-channel-display" class="font-mono text-green-400 font-bold">...</span></span>
                 </div>
-                <button
-                    id="bind-reward-btn"
-                    type="button"
-                    onclick="toggleBindNextRedeem()"
-                    title="Click, then redeem 'IRL Word Ban' in chat to manually link its Reward ID"
-                    class="shrink-0 bg-purple-900/70 hover:bg-purple-800 text-purple-200 text-[11px] font-semibold px-2 py-0.5 rounded border border-purple-700/60 transition-colors"
-                >
-                    Link ID
-                </button>
-            </div>
-            <p class="mb-2 text-xs text-gray-400">URL params: <code class="bg-black p-1 rounded">?channel=name</code> &amp; optional <code class="bg-black p-1 rounded">?avatar=url</code></p>
-            <div class="mt-3">
-                <strong class="text-gray-200">Triggers:</strong>
-                <ul class="list-disc pl-5 mt-1 space-y-1 text-gray-300 text-xs">
-                    <li><span class="text-purple-400 font-semibold">"IRL Word Ban" Redeem</span> - Only triggers on this specific Channel Point reward.</li>
-                    <li><code class="text-pink-400">!wordban [word] [user]</code> - Starts 3m ban (Mod/Streamer).</li>
-                    <li><code class="text-pink-400">!penalty</code> - Adds 1 min.</li>
-                    <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
-                </ul>
-            </div>
-
-            <!-- Simulate Word Ban Controls -->
-            <div class="mt-4 pt-3 border-t border-gray-700">
-                <strong class="text-gray-200 block mb-2">Simulate Word Ban:</strong>
-                <form id="simulate-form" class="flex flex-col gap-2 mb-2" onsubmit="handleSimulateSubmit(event)">
-                    <div class="flex gap-2">
-                        <div class="flex-1 min-w-0">
-                            <label class="block text-[11px] text-gray-400 mb-0.5">Banned Word</label>
-                            <input
-                                id="simulate-word-input"
-                                type="text"
-                                placeholder="Word..."
-                                value="testword"
-                                class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
-                            />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <label class="block text-[11px] text-gray-400 mb-0.5">Redeemed By</label>
-                            <input
-                                id="simulate-user-input"
-                                type="text"
-                                placeholder="Username..."
-                                value="testuser"
-                                class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
-                            />
-                        </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="flex items-center gap-1.5 bg-black/50 border border-gray-800 rounded-lg px-2 py-1 text-xs">
+                        <span class="text-gray-400">Redeem:</span>
+                        <span class="text-purple-400 font-semibold">IRL Word Ban</span>
+                        <span id="reward-status-badge" class="text-[11px] text-amber-400">(looking up...)</span>
+                        <button
+                            id="bind-reward-btn"
+                            type="button"
+                            onclick="toggleBindNextRedeem()"
+                            title="Click, then redeem 'IRL Word Ban' in chat to manually link its Reward ID"
+                            class="ml-1 bg-purple-900/70 hover:bg-purple-800 text-purple-200 text-[11px] font-semibold px-2 py-0.5 rounded border border-purple-700/60 transition-colors"
+                        >
+                            Link ID
+                        </button>
                     </div>
-                    <button
-                        type="submit"
-                        class="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors"
-                    >
-                        Ban Word
+                    <button onclick="hideGuidePanel()" title="Hide panel (H)" class="text-gray-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800 transition-colors">
+                        ✕ Hide
                     </button>
-                </form>
-                <div class="grid grid-cols-3 gap-1.5">
-                    <button
-                        type="button"
-                        onclick="simulatePenalty()"
-                        class="bg-amber-600/90 hover:bg-amber-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
-                    >
-                        +1m Penalty
-                    </button>
-                    <button
-                        type="button"
-                        onclick="simulateEndingSoon()"
-                        class="bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
-                        title="Jump timer to 3 seconds left to preview Ban Over"
-                    >
-                        Test End (3s)
-                    </button>
-                    <button
-                        type="button"
-                        onclick="hideOverlay()"
-                        class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
-                    >
-                        Clear Ban
-                    </button>
-                </div>
-
-                <!-- Sound Effects & TTS Volume / Mute Control -->
-                <div class="mt-3 pt-2.5 border-t border-gray-800 flex items-center justify-between gap-1.5 text-xs">
-                    <button
-                        id="mute-btn"
-                        type="button"
-                        onclick="toggleMute()"
-                        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
-                        title="Mute / Unmute Sound Effects"
-                    >
-                        🔊 SFX
-                    </button>
-                    <button
-                        id="tts-btn"
-                        type="button"
-                        onclick="toggleTts()"
-                        class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
-                        title="Enable / Disable TTS Voice Announcements"
-                    >
-                        🗣️ TTS
-                    </button>
-                    <input
-                        id="volume-slider"
-                        type="range"
-                        min="0"
-                        max="100"
-                        value="70"
-                        oninput="handleVolumeChange(this.value)"
-                        class="flex-1 accent-red-500 cursor-pointer h-1.5 bg-gray-700 rounded-lg"
-                        title="Audio Volume"
-                    />
-                    <span id="volume-label" class="text-gray-400 font-mono text-[11px] w-8 text-right">70%</span>
                 </div>
             </div>
 
-            <p id="guide-autohide-msg" class="mt-3 text-xs text-gray-500 italic">Crop or move this top panel off-screen in OBS to use via Interact.</p>
+            <div class="grid grid-cols-2 gap-4 items-start">
+                <!-- Left Column: Info & Triggers -->
+                <div class="flex flex-col justify-between h-full">
+                    <div>
+                        <strong class="text-gray-200 text-xs uppercase tracking-wider">Triggers</strong>
+                        <ul class="list-disc pl-4 mt-1.5 space-y-1 text-gray-300 text-xs">
+                            <li><span class="text-purple-400 font-semibold">"IRL Word Ban" Redeem</span> - Only triggers on this specific Channel Point reward.</li>
+                            <li><code class="text-pink-400">!wordban [word] [user]</code> - Starts 3m ban (Mod/Streamer).</li>
+                            <li><code class="text-pink-400">!penalty</code> - Adds 1 min.</li>
+                            <li><code class="text-pink-400">!clearban</code> - Hides overlay.</li>
+                        </ul>
+                        <p class="mt-2.5 text-xs text-gray-400">URL params: <code class="bg-black px-1 py-0.5 rounded">?channel=name</code> &amp; optional <code class="bg-black px-1 py-0.5 rounded">?avatar=url</code></p>
+                    </div>
+                    <p id="guide-autohide-msg" class="mt-3 text-[11px] text-gray-500 italic">Crop or move this top panel off-screen in OBS to use via Interact.</p>
+                </div>
+
+                <!-- Right Column: Simulator & Audio Controls -->
+                <div class="flex flex-col gap-2.5 border-l border-gray-800 pl-4">
+                    <strong class="text-gray-200 text-xs uppercase tracking-wider">Simulate Word Ban</strong>
+                    <form id="simulate-form" class="flex flex-col gap-2" onsubmit="handleSimulateSubmit(event)">
+                        <div class="flex gap-2">
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[11px] text-gray-400 mb-0.5">Banned Word</label>
+                                <input
+                                    id="simulate-word-input"
+                                    type="text"
+                                    placeholder="Word..."
+                                    value="testword"
+                                    class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <label class="block text-[11px] text-gray-400 mb-0.5">Redeemed By</label>
+                                <input
+                                    id="simulate-user-input"
+                                    type="text"
+                                    placeholder="Username..."
+                                    value="testuser"
+                                    class="w-full bg-black/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            class="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                            Ban Word
+                        </button>
+                    </form>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button
+                            type="button"
+                            onclick="simulatePenalty()"
+                            class="bg-amber-600/90 hover:bg-amber-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
+                        >
+                            +1m Penalty
+                        </button>
+                        <button
+                            type="button"
+                            onclick="simulateEndingSoon()"
+                            class="bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
+                            title="Jump timer to 3 seconds left to preview Ban Over"
+                        >
+                            Test End (3s)
+                        </button>
+                        <button
+                            type="button"
+                            onclick="hideOverlay()"
+                            class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xs py-1.5 px-2 rounded-lg transition-colors"
+                        >
+                            Clear Ban
+                        </button>
+                    </div>
+
+                    <!-- Sound Effects & TTS Volume / Mute Control -->
+                    <div class="pt-2 border-t border-gray-800 flex items-center justify-between gap-1.5 text-xs">
+                        <button
+                            id="mute-btn"
+                            type="button"
+                            onclick="toggleMute()"
+                            class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
+                            title="Mute / Unmute Sound Effects"
+                        >
+                            🔊 SFX
+                        </button>
+                        <button
+                            id="tts-btn"
+                            type="button"
+                            onclick="toggleTts()"
+                            class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold px-2 py-1 rounded-lg border border-gray-700 transition-colors shrink-0"
+                            title="Enable / Disable TTS Voice Announcements"
+                        >
+                            🗣️ TTS
+                        </button>
+                        <input
+                            id="volume-slider"
+                            type="range"
+                            min="0"
+                            max="100"
+                            value="70"
+                            oninput="handleVolumeChange(this.value)"
+                            class="flex-1 accent-red-500 cursor-pointer h-1.5 bg-gray-700 rounded-lg"
+                            title="Audio Volume"
+                        />
+                        <span id="volume-label" class="text-gray-400 font-mono text-[11px] w-8 text-right">70%</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
