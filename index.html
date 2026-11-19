@@ -318,6 +318,14 @@
                 </span>
             </div>
 
+            <!-- Queued Word Bans -->
+            <div id="queue-container" class="hidden w-full mt-4 pt-3 border-t border-red-500/30 flex flex-col items-center gap-1.5">
+                <div class="text-xs font-extrabold tracking-widest uppercase text-zinc-400">
+                    UP NEXT (<span id="queue-count">0</span>)
+                </div>
+                <div id="queue-list" class="flex flex-wrap items-center justify-center gap-2 max-w-full"></div>
+            </div>
+
             <!-- Dynamic Penalty Text Notification (Pops up over the box) -->
             <div id="penalty-notification" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-black text-5xl bg-red-600 px-8 py-3 rounded-xl opacity-0 transition-all duration-300 pointer-events-none transform scale-50 border-4 border-white shadow-[0_0_40px_rgba(255,0,0,1)] whitespace-nowrap z-30">
                 +1 MIN PENALTY!
@@ -772,6 +780,9 @@
         const timerRow = document.getElementById('timer-row');
         const timerLabel = document.getElementById('timer-label');
         const timerDisplay = document.getElementById('timer-display');
+        const queueContainer = document.getElementById('queue-container');
+        const queueCount = document.getElementById('queue-count');
+        const queueList = document.getElementById('queue-list');
         const penaltyNotif = document.getElementById('penalty-notification');
         const simulateWordInput = document.getElementById('simulate-word-input');
         const simulateUserInput = document.getElementById('simulate-user-input');
@@ -782,10 +793,59 @@
         let remainingSeconds = 0;
         let isActive = false;
         let currentBannedWord = '';
+        let banQueue = [];
         const DEFAULT_TIME = 180; // 3 minutes in seconds
         const PENALTY_TIME = 60; // 1 minute in seconds
 
         // --- Core Logic ---
+
+        function updateQueueDisplay() {
+            if (banQueue.length === 0) {
+                queueContainer.classList.add('hidden');
+                queueList.innerHTML = '';
+                queueCount.textContent = '0';
+                return;
+            }
+
+            queueContainer.classList.remove('hidden');
+            queueCount.textContent = String(banQueue.length);
+            queueList.innerHTML = '';
+
+            const maxVisible = 4;
+            banQueue.slice(0, maxVisible).forEach((item) => {
+                const pill = document.createElement('span');
+                pill.className = 'bg-zinc-900/90 border border-red-500/50 text-zinc-200 text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wide';
+
+                const wordSpan = document.createElement('span');
+                wordSpan.textContent = item.word;
+                pill.appendChild(wordSpan);
+
+                const userSpan = document.createElement('span');
+                userSpan.className = 'text-red-400 font-semibold ml-1';
+                userSpan.textContent = `(${item.redeemer})`;
+                pill.appendChild(userSpan);
+
+                queueList.appendChild(pill);
+            });
+
+            if (banQueue.length > maxVisible) {
+                const morePill = document.createElement('span');
+                morePill.className = 'bg-zinc-900/70 border border-zinc-700 text-zinc-400 text-xs font-bold px-2.5 py-1 rounded-lg';
+                morePill.textContent = `+${banQueue.length - maxVisible} more`;
+                queueList.appendChild(morePill);
+            }
+        }
+
+        function enqueueOrStartBan(word, redeemer, duration = DEFAULT_TIME, announce = true) {
+            const cleanRedeemer = (redeemer || 'CHAT').replace(/^@/, '').trim();
+            if (isActive) {
+                banQueue.push({ word, redeemer: cleanRedeemer, duration });
+                updateQueueDisplay();
+                return;
+            }
+            showOverlay(word, cleanRedeemer, duration, announce);
+            startTimer(duration);
+        }
 
         // Format seconds to M:SS string (no leading zero on minutes)
         function formatTime(secs) {
@@ -846,6 +906,8 @@
         function hideOverlay() {
             container.classList.remove('show');
             isActive = false;
+            banQueue = [];
+            updateQueueDisplay();
             stopTts();
             if (timerInterval) clearInterval(timerInterval);
             if (banOverTimeout) {
@@ -907,9 +969,17 @@
                     container.style.borderColor = "#22c55e";
                     container.style.boxShadow = "0 0 25px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3)";
                     
-                    // Wait a few seconds, then hide the box automatically
+                    // Wait a few seconds, then move to next queued ban or hide the box
                     banOverTimeout = setTimeout(() => {
-                        hideOverlay();
+                        banOverTimeout = null;
+                        if (banQueue.length > 0) {
+                            const nextBan = banQueue.shift();
+                            updateQueueDisplay();
+                            showOverlay(nextBan.word, nextBan.redeemer, nextBan.duration, true);
+                            startTimer(nextBan.duration);
+                        } else {
+                            hideOverlay();
+                        }
                     }, 5000); 
                 }
             }, 1000);
@@ -920,8 +990,7 @@
         function simulateBan(word, redeemer, duration = DEFAULT_TIME, announce = true) {
             const targetWord = (word || simulateWordInput.value || 'testword').trim();
             const targetUser = (redeemer || simulateUserInput.value || 'testuser').trim();
-            showOverlay(targetWord, targetUser, duration, announce);
-            startTimer(duration);
+            enqueueOrStartBan(targetWord, targetUser, duration, announce);
         }
 
         function handleSimulateSubmit(event) {
@@ -982,8 +1051,7 @@
 
                 // Strictly verify the redeemed reward ID matches "IRL Word Ban"
                 if (targetRewardId && redeemedId === targetRewardId && trimmedMsg) {
-                    showOverlay(trimmedMsg, senderDisplay);
-                    startTimer(DEFAULT_TIME);
+                    enqueueOrStartBan(trimmedMsg, senderDisplay);
                     return;
                 }
             }
@@ -1010,8 +1078,7 @@
                     word = args.slice(1, -1).join(' ');
                 }
 
-                showOverlay(word, redeemer);
-                startTimer(DEFAULT_TIME);
+                enqueueOrStartBan(word, redeemer);
             }
             else if (command === '!penalty') {
                 if (isActive && remainingSeconds > 0) {
