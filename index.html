@@ -371,6 +371,7 @@
         let sfxVolume = parseFloat(urlParams.get('volume') ?? localStorage.getItem('irl_word_ban_volume') ?? '0.7');
         if (isNaN(sfxVolume) || sfxVolume < 0 || sfxVolume > 1) sfxVolume = 0.7;
         let ttsTimeout = null;
+        let ttsAudio = null;
 
         const muteBtn = document.getElementById('mute-btn');
         const ttsBtn = document.getElementById('tts-btn');
@@ -464,34 +465,63 @@
                 clearTimeout(ttsTimeout);
                 ttsTimeout = null;
             }
+            if (ttsAudio) {
+                ttsAudio.pause();
+                ttsAudio.currentTime = 0;
+                ttsAudio = null;
+            }
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
         }
 
+        function playAudioTtsFallback(text) {
+            try {
+                const url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(text)}`;
+                ttsAudio = new Audio(url);
+                ttsAudio.volume = Math.max(0, Math.min(1, sfxVolume));
+                ttsAudio.play().catch((err) => {
+                    console.warn('Audio TTS fallback playback failed:', err);
+                });
+            } catch (e) {
+                console.warn('Audio TTS fallback error:', e);
+            }
+        }
+
         function speakTts(text, delayMs = 0) {
-            if (ttsMuted || sfxVolume <= 0 || !('speechSynthesis' in window)) return;
+            if (ttsMuted || sfxVolume <= 0) return;
             stopTts();
 
             const runSpeech = () => {
+                if (!('speechSynthesis' in window)) {
+                    playAudioTtsFallback(text);
+                    return;
+                }
+
                 try {
+                    const voices = window.speechSynthesis.getVoices();
+                    // OBS Browser Source (CEF) often has speechSynthesis defined but 0 voices
+                    if (!voices || voices.length === 0) {
+                        playAudioTtsFallback(text);
+                        return;
+                    }
+
                     const utterance = new SpeechSynthesisUtterance(text);
                     utterance.volume = Math.max(0, Math.min(1, sfxVolume));
                     utterance.rate = 1.0;
                     utterance.pitch = 1.0;
 
-                    const voices = window.speechSynthesis.getVoices();
-                    if (voices && voices.length > 0) {
-                        const preferredVoice =
-                            voices.find(v => v.lang.startsWith('en') && /natural|google|samantha|zira|david|daniel/i.test(v.name)) ||
-                            voices.find(v => v.lang.startsWith('en')) ||
-                            voices[0];
-                        if (preferredVoice) utterance.voice = preferredVoice;
-                    }
+                    const preferredVoice =
+                        voices.find(v => v.lang.startsWith('en') && /natural|google|samantha|zira|david|daniel/i.test(v.name)) ||
+                        voices.find(v => v.lang.startsWith('en')) ||
+                        voices[0];
+                    if (preferredVoice) utterance.voice = preferredVoice;
 
+                    utterance.onerror = () => playAudioTtsFallback(text);
                     window.speechSynthesis.speak(utterance);
                 } catch (e) {
-                    console.warn('TTS playback error:', e);
+                    console.warn('TTS playback error, using fallback:', e);
+                    playAudioTtsFallback(text);
                 }
             };
 
