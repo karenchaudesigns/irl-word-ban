@@ -476,20 +476,24 @@
         }
 
         function playAudioTtsFallback(text, onErrorFallback) {
+            let fallbackCalled = false;
+            const triggerFallback = () => {
+                if (fallbackCalled) return;
+                fallbackCalled = true;
+                if (onErrorFallback) onErrorFallback();
+            };
             try {
                 const url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(text)}`;
                 ttsAudio = new Audio(url);
                 ttsAudio.volume = Math.max(0, Math.min(1, sfxVolume));
-                ttsAudio.onerror = () => {
-                    if (onErrorFallback) onErrorFallback();
-                };
+                ttsAudio.onerror = triggerFallback;
                 ttsAudio.play().catch((err) => {
                     console.warn('Audio TTS fallback playback failed:', err);
-                    if (onErrorFallback) onErrorFallback();
+                    triggerFallback();
                 });
             } catch (e) {
                 console.warn('Audio TTS fallback error:', e);
-                if (onErrorFallback) onErrorFallback();
+                triggerFallback();
             }
         }
 
@@ -990,12 +994,14 @@
         }
 
         // Immediately hide overlay and clean up state
-        function hideOverlay() {
+        function hideOverlay(stopAudio = true) {
             container.classList.remove('show');
             isActive = false;
             banQueue = [];
             updateQueueDisplay();
-            stopTts();
+            if (stopAudio) {
+                stopTts();
+            }
             if (timerInterval) clearInterval(timerInterval);
             if (banOverTimeout) {
                 clearTimeout(banOverTimeout);
@@ -1065,7 +1071,7 @@
                             showOverlay(nextBan.word, nextBan.redeemer, nextBan.duration, true);
                             startTimer(nextBan.duration);
                         } else {
-                            hideOverlay();
+                            hideOverlay(false);
                         }
                     }, 5000); 
                 }
