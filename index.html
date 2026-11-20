@@ -1145,7 +1145,8 @@
 
                 // Strictly verify the redeemed reward ID matches "IRL Word Ban"
                 if (targetRewardId && redeemedId === targetRewardId && trimmedMsg) {
-                    enqueueOrStartBan(trimmedMsg, senderDisplay);
+                    const firstWord = trimmedMsg.split(/\s+/)[0];
+                    enqueueOrStartBan(firstWord, senderDisplay);
                     return;
                 }
             }
