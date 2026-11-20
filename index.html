@@ -475,16 +475,54 @@
             }
         }
 
-        function playAudioTtsFallback(text) {
+        function playAudioTtsFallback(text, onErrorFallback) {
             try {
                 const url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(text)}`;
                 ttsAudio = new Audio(url);
                 ttsAudio.volume = Math.max(0, Math.min(1, sfxVolume));
+                ttsAudio.onerror = () => {
+                    if (onErrorFallback) onErrorFallback();
+                };
                 ttsAudio.play().catch((err) => {
                     console.warn('Audio TTS fallback playback failed:', err);
+                    if (onErrorFallback) onErrorFallback();
                 });
             } catch (e) {
                 console.warn('Audio TTS fallback error:', e);
+                if (onErrorFallback) onErrorFallback();
+            }
+        }
+
+        function speakWebSpeech(text, onErrorFallback) {
+            if (!('speechSynthesis' in window)) {
+                if (onErrorFallback) onErrorFallback();
+                return;
+            }
+            try {
+                const voices = window.speechSynthesis.getVoices();
+                if (!voices || voices.length === 0) {
+                    if (onErrorFallback) onErrorFallback();
+                    return;
+                }
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.volume = Math.max(0, Math.min(1, sfxVolume));
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+
+                const preferredVoice =
+                    voices.find(v => v.lang.startsWith('en') && /natural|google|samantha|zira|david|daniel/i.test(v.name)) ||
+                    voices.find(v => v.lang.startsWith('en')) ||
+                    voices[0];
+                if (preferredVoice) utterance.voice = preferredVoice;
+
+                utterance.onerror = () => {
+                    if (onErrorFallback) onErrorFallback();
+                };
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                console.warn('TTS playback error:', e);
+                if (onErrorFallback) onErrorFallback();
             }
         }
 
@@ -493,35 +531,11 @@
             stopTts();
 
             const runSpeech = () => {
-                if (!('speechSynthesis' in window)) {
-                    playAudioTtsFallback(text);
-                    return;
-                }
-
-                try {
-                    const voices = window.speechSynthesis.getVoices();
-                    // OBS Browser Source (CEF) often has speechSynthesis defined but 0 voices
-                    if (!voices || voices.length === 0) {
-                        playAudioTtsFallback(text);
-                        return;
-                    }
-
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.volume = Math.max(0, Math.min(1, sfxVolume));
-                    utterance.rate = 1.0;
-                    utterance.pitch = 1.0;
-
-                    const preferredVoice =
-                        voices.find(v => v.lang.startsWith('en') && /natural|google|samantha|zira|david|daniel/i.test(v.name)) ||
-                        voices.find(v => v.lang.startsWith('en')) ||
-                        voices[0];
-                    if (preferredVoice) utterance.voice = preferredVoice;
-
-                    utterance.onerror = () => playAudioTtsFallback(text);
-                    window.speechSynthesis.speak(utterance);
-                } catch (e) {
-                    console.warn('TTS playback error, using fallback:', e);
-                    playAudioTtsFallback(text);
+                // OBS Browser Source (CEF) often lists system voices but produces no audio via speechSynthesis
+                if (window.obsstudio) {
+                    playAudioTtsFallback(text, () => speakWebSpeech(text));
+                } else {
+                    speakWebSpeech(text, () => playAudioTtsFallback(text));
                 }
             };
 
