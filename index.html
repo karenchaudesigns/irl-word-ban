@@ -386,7 +386,7 @@
             muteBtn.textContent = sfxMuted || pct === 0 ? '🔇 SFX' : '🔊 SFX';
             muteBtn.className = `bg-gray-800 hover:bg-gray-700 font-semibold px-2 py-1 rounded-lg border transition-colors shrink-0 ${sfxMuted || pct === 0 ? 'text-gray-500 border-gray-800' : 'text-gray-200 border-gray-700'}`;
             if (ttsBtn) {
-                ttsBtn.textContent = ttsMuted || pct === 0 ? '🔇 TTS' : '🗣️ TTS';
+                ttsBtn.innerHTML = ttsMuted || pct === 0 ? '🔇 TTS' : '<span class="inline-block brightness-0 invert">🗣️</span> TTS';
                 ttsBtn.className = `bg-gray-800 hover:bg-gray-700 font-semibold px-2 py-1 rounded-lg border transition-colors shrink-0 ${ttsMuted || pct === 0 ? 'text-gray-500 border-gray-800' : 'text-gray-200 border-gray-700'}`;
             }
         }
