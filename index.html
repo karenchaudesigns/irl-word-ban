@@ -546,6 +546,13 @@
             speakTts(message, sfxMuted ? 0 : 350);
         }
 
+        function announceBanQueued(redeemer, word) {
+            const cleanUser = (redeemer || 'Chat').replace(/^@/, '').trim();
+            const spokenWord = (word || '').trim().toLowerCase();
+            const message = `${cleanUser} queued IRL Word Ban for ${spokenWord}!`;
+            speakTts(message, sfxMuted ? 0 : 300);
+        }
+
         // 1. Word Ban Start Alert (Two-tone warning siren + impact)
         function playBanStartSound() {
             const ctx = getAudioContext();
@@ -640,6 +647,32 @@
                 osc.frequency.setValueAtTime(freq, now + start);
                 g.gain.setValueAtTime(0.001, now + start);
                 g.gain.exponentialRampToValueAtTime(0.6, now + start + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+                osc.connect(g);
+                g.connect(master);
+                osc.start(now + start);
+                osc.stop(now + start + dur + 0.02);
+            });
+        }
+
+        // 5. Queued Ban Chime (Quick two-note ascending ping)
+        function playQueuedSound() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const master = ctx.createGain();
+            master.gain.setValueAtTime(0.3 * sfxVolume, now);
+            master.connect(ctx.destination);
+
+            [587.33, 880.0].forEach((freq, i) => { // D5 -> A5
+                const start = i * 0.09;
+                const dur = 0.16;
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + start);
+                g.gain.setValueAtTime(0.001, now + start);
+                g.gain.exponentialRampToValueAtTime(0.55, now + start + 0.015);
                 g.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
                 osc.connect(g);
                 g.connect(master);
@@ -877,6 +910,10 @@
             if (isActive) {
                 banQueue.push({ word, redeemer: cleanRedeemer, duration });
                 updateQueueDisplay();
+                playQueuedSound();
+                if (announce) {
+                    announceBanQueued(cleanRedeemer, word);
+                }
                 return;
             }
             showOverlay(word, cleanRedeemer, duration, announce);
