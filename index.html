@@ -1063,7 +1063,7 @@
                     container.style.borderColor = "#22c55e";
                     container.style.boxShadow = "0 0 25px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.3)";
                     
-                    // Wait a few seconds, then move to next queued ban or hide the box
+                    // Wait for ban-over TTS, then move to next queued ban or hide the box
                     banOverTimeout = setTimeout(() => {
                         banOverTimeout = null;
                         if (banQueue.length > 0) {
@@ -1074,7 +1074,7 @@
                         } else {
                             hideOverlay(false);
                         }
-                    }, 5000); 
+                    }, 6500); 
                 }
             }, 1000);
         }
