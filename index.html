@@ -553,7 +553,8 @@
         function announceBanStart(redeemer, word, durationSecs) {
             const cleanUser = (redeemer || 'Chat').replace(/^@/, '').trim();
             const spokenWord = (word || '').trim().toLowerCase();
-            const message = `${cleanUser} redeemed IRL Word Ban -- don't say ${spokenWord}`;
+            const durationText = formatDurationForSpeech(durationSecs);
+            const message = `${cleanUser} redeemed IRL Word Ban. Don't say ${spokenWord} for ${durationText}`;
             // Delay slightly so the 3-note start siren finishes its initial pulse first
             speakTts(message, sfxMuted ? 0 : 450);
         }
